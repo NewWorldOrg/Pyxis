@@ -1,13 +1,14 @@
 # Pyxis
 
 日本のテレビ放送(地上デジタルと BS・CS)を録画して観るサーバを、Docker の機械 1 台に立てる。
-中身は [Carina](https://github.com/NewWorldOrg/Carina)(録画とライブと API)と [Vela](https://github.com/NewWorldOrg/Vela)(画面)で、Pyxis はこの 2 つを動く組み合わせの版で固定して配る。
+中身は [Carina](https://github.com/NewWorldOrg/Carina)(録画とライブと API)と [Vela](https://github.com/NewWorldOrg/Vela)(画面)。
+Pyxis はこの 2 つを、動く組み合わせの版で固定して配る。
 
 ## 用意するもの
 
 - Docker 25 以上と Docker Compose v2 が入った Linux の機械。CPU は amd64
 - 録画を置くディスク。地上波は 1 時間で 7 GB ほど増える
-- チューナー。PCIe や USB の Linux DVB 対応のもの(`/dev/dvb/adapterN` が見えるもの)か、USB の地上デジタルチューナー CECH-ZD1
+- チューナー。Linux DVB 対応のもの(`/dev/dvb/adapterN` が見える PCIe や USB のカード)か、USB の地上デジタルチューナー CECH-ZD1
 - B-CAS カードとカードリーダ、ホストで動く pcscd。DVB のチューナーでスクランブルを解くのに使う
 - Intel の GPU(任意)。録画をあとから H.265 や AV1 にするときと、ライブや再生をその場で変換するときに使う
 
@@ -48,7 +49,8 @@
    cp driver/examples/driver-dvb.json driver/driver.json
    ```
 
-   `devices` に、チューナーごとに `id`・`kind`(`terrestrial` か `satellite`)・`devicePath` を書く。
+   `devices` にチューナーごとの `id`・`kind`・`devicePath` を書く。
+   `kind` は `terrestrial` か `satellite`。
    DVB なら `/dev/dvb/adapter0/frontend0` のように frontend までを書く。
    使わないチューナーは `enabled` を `false` にする。
    ほかのキーの意味は Carina の README の `driver` の節にある。
@@ -68,7 +70,8 @@
 
    チューナーが 2 本以上なら `examples/tuner-dvb.yml` の `devices` に行を足す。
    GPU も使うなら `-f examples/gpu-intel.yml` を続けて書く。
-   毎回書かないなら、`.env` に `COMPOSE_FILE=compose.yml:examples/tuner-dvb.yml:examples/gpu-intel.yml` と書けば `docker compose up -d` だけで済む。
+   毎回 `-f` を書かないなら、`.env` に `COMPOSE_FILE=compose.yml:examples/tuner-dvb.yml:examples/gpu-intel.yml` と書く。
+   以後は `docker compose up -d` だけで済む。
    何も重ねなければ、合成のチューナーで起動する。
 
 5. ブラウザで `http://<機械のアドレス>/` を開く。
@@ -112,7 +115,8 @@ GPU が 2 枚あるときは `CARINA_RENDER_NODE` で使うノードを選ぶ。
 
 ### 外から開く
 
-家の外から開くなら、ドメインをこの機械に向け、80 番と 443 番を通してから `.env` に書く。
+家の外から開くなら、ドメインをこの機械に向けて 80 番と 443 番を通す。
+そのうえで `.env` に書く。
 
 ```
 PYXIS_SITE_ADDRESS=tv.example.com
@@ -144,20 +148,21 @@ services:
 
 自分の前段では次を守る。
 
-- `/api/*` を `app` の 8080 番に、それ以外を `vela` の 3000 番に送り、両方を同じオリジンで開く。オリジンが分かれると Cookie が届かない
+- `/api/*` を `app` の 8080 番に、それ以外を `vela` の 3000 番に送る。両方を同じオリジンで開く(分かれると Cookie が届かない)
 - `/api/events` はサーバから流れ続ける応答なので、溜めずに流す
 - `/api/live/ws` は WebSocket なので、切らずに通す
 - `Range` ヘッダをそのまま通す。再生とシークに使う
 - アクセスログを取るなら、パスを残さない。外部プレイヤー向けの URL はパスに再生用のトークンを含む
 
 同梱の `Caddyfile` がこの 5 つをしている。
-前段を自分で持つときは、`CARINA_KNOWN_NETWORKS` に前段のアドレスの範囲を書く(`compose.override.yml` の `app` の `environment`)。
+前段を自分で持つときは、`compose.override.yml` の `app` の `environment` に `CARINA_KNOWN_NETWORKS` を足す。
+値は前段のアドレスの範囲。
 書かないと `X-Forwarded-*` が読まれず、https で開いてもセッション Cookie に Secure が付かない。
 
 ## 更新する
 
 Pyxis の新しい版は、`compose.yml` のイメージの版を上げたリリースとして出る。
-更新は、古い `app` を止めてからデータベースのスキーマを当て、新しい `app` を上げる順にする。
+更新の順は、古い `app` を止める、データベースのスキーマを当てる、新しい `app` を上げる。
 `app` が動いたままスキーマを当てると、列や表を消す変更で古い `app` が壊れる。
 
 ```bash
@@ -169,10 +174,12 @@ docker compose up -d
 ```
 
 `up -d` は `migrate` を先に走らせ、成功してから `app` を上げる。
-`driver` は、`compose.yml` の `driver` の版が変わらなければ作り直されず、録画は止まらない。
+`driver` は `compose.yml` の版が変わらなければ作り直されない。
+録画は止まらない。
 
 `driver` の版が変わる更新は、録画中とライブの視聴中を避ける。
-録画中に `driver` を止めると、録画が終わるまで(上限は `driver.json` の `shutdownGraceHours`、既定 6 時間)待ってから止まり、そのあいだ新しい `driver` は上がらない。
+録画中に `driver` を止めると、録画が終わるまで待ってから止まる。
+待つ上限は `driver.json` の `shutdownGraceHours`(既定 6 時間)で、そのあいだ新しい `driver` は上がらない。
 ライブの視聴は切れる。
 
 `driver` の入れ替えを後に回すなら、`driver` を除いて上げる。
@@ -183,7 +190,7 @@ docker compose run --rm migrate
 docker compose up -d --no-deps app vela proxy
 ```
 
-リリースの本文に、その版で `driver` が変わるかと、列や表を消すスキーマの変更があるかを書く。
+その版で `driver` が変わるか、列や表を消すスキーマの変更があるかは、リリースの本文に書く。
 
 ## 戻す
 
