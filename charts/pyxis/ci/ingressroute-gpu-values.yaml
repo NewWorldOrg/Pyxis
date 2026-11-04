@@ -1,0 +1,79 @@
+# Traefik の IngressRoute と Intel の device plugin。DVB のチューナーと pcscd を渡し、置き場は hostPath
+nodeSelector:
+  kubernetes.io/hostname: node-1
+driver:
+  config:
+    outputRoots:
+      - name: primary
+        path: /srv/recordings
+    shutdownGraceHours: 6
+    tuner:
+      backend: dvb
+    devices:
+      - id: adapter0.frontend0
+        kind: terrestrial
+        devicePath: /dev/dvb/adapter0/frontend0
+        enabled: true
+  hostDevices:
+    - /dev/dvb/adapter0
+  pcscd:
+    enabled: true
+  lendingKey:
+    existingSecret: pyxis-lending-key
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      memory: 2Gi
+app:
+  publicOrigin: https://tv.example.com
+  knownNetworks:
+    - 10.42.0.0/16
+  encodingsPrefer: Vaapi
+  transcodingPrefer: Vaapi
+  gpu:
+    mode: devicePlugin
+  dataProtection:
+    seedSecret: pyxis-data-protection-seed
+  extraEnv:
+    - name: Encodings__MostCores
+      value: "4"
+  resources:
+    requests:
+      cpu: 200m
+      memory: 512Mi
+    limits:
+      memory: 8Gi
+postgres:
+  auth:
+    existingSecret: pyxis-db
+    passwordKey: password
+route:
+  kind: ingressRoute
+  host: tv.example.com
+persistence:
+  recordings:
+    type: hostPath
+    hostPath:
+      path: /srv/pyxis/recordings
+  encodes:
+    type: hostPath
+    hostPath:
+      path: /srv/pyxis/encodes
+  thumbnails:
+    type: hostPath
+    hostPath:
+      path: /srv/pyxis/thumbnails
+  captions:
+    type: hostPath
+    hostPath:
+      path: /srv/pyxis/captions
+  keys:
+    type: hostPath
+    hostPath:
+      path: /srv/pyxis/keys
+  db:
+    type: hostPath
+    hostPath:
+      path: /srv/pyxis/postgres

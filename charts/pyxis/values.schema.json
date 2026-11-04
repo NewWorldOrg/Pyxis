@@ -1,0 +1,300 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "pyxis の値",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "global": { "type": "object" },
+    "nodeSelector": { "$ref": "#/$defs/stringMap" },
+    "imagePullSecrets": { "type": "array", "items": { "type": "string", "minLength": 1 } },
+    "carina": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["uid", "gid"],
+      "properties": {
+        "uid": { "type": "integer", "minimum": 1 },
+        "gid": { "type": "integer", "minimum": 1 }
+      }
+    },
+    "driver": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["enabled", "image", "config", "hostDevices", "pcscd", "socket", "hostNetwork", "lendingKey", "terminationGracePeriodSeconds"],
+      "properties": {
+        "enabled": { "type": "boolean" },
+        "image": { "$ref": "#/$defs/image" },
+        "config": {
+          "type": "object",
+          "required": ["outputRoots", "tuner", "devices"],
+          "properties": {
+            "outputRoots": {
+              "type": "array",
+              "minItems": 1,
+              "items": {
+                "type": "object",
+                "required": ["name", "path"],
+                "properties": {
+                  "name": { "type": "string", "minLength": 1 },
+                  "path": { "$ref": "#/$defs/absolutePath" }
+                }
+              }
+            },
+            "shutdownGraceHours": { "type": "integer", "minimum": 1, "maximum": 168 },
+            "tuner": {
+              "type": "object",
+              "required": ["backend"],
+              "properties": {
+                "backend": { "type": "string", "enum": ["dvb", "usb", "fake"] }
+              }
+            },
+            "devices": {
+              "type": "array",
+              "minItems": 1,
+              "items": {
+                "type": "object",
+                "required": ["id", "kind"],
+                "properties": {
+                  "id": { "type": "string", "minLength": 1 },
+                  "kind": { "type": "string", "enum": ["terrestrial", "satellite"] },
+                  "devicePath": { "$ref": "#/$defs/absolutePath" },
+                  "enabled": { "type": "boolean" }
+                }
+              }
+            }
+          }
+        },
+        "hostDevices": { "type": "array", "items": { "$ref": "#/$defs/absolutePath" } },
+        "pcscd": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["enabled"],
+          "properties": { "enabled": { "type": "boolean" } }
+        },
+        "socket": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["hostPath"],
+          "properties": { "hostPath": { "$ref": "#/$defs/absolutePath" } }
+        },
+        "hostNetwork": { "type": "boolean" },
+        "lendingKey": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["existingSecret", "key"],
+          "properties": {
+            "existingSecret": { "type": "string" },
+            "key": { "type": "string", "minLength": 1 }
+          }
+        },
+        "terminationGracePeriodSeconds": { "type": "integer", "minimum": 0 },
+        "nodeSelector": { "$ref": "#/$defs/stringMap" },
+        "resources": { "$ref": "#/$defs/resources" }
+      }
+    },
+    "app": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["enabled", "image", "publicOrigin", "knownNetworks", "encodingsPrefer", "transcodingPrefer", "gpu", "dataProtection", "extraEnv"],
+      "properties": {
+        "enabled": { "type": "boolean" },
+        "image": { "$ref": "#/$defs/image" },
+        "publicOrigin": { "type": "string", "pattern": "^(https?://[^/]+)?$" },
+        "knownNetworks": { "type": "array", "items": { "type": "string", "minLength": 1 } },
+        "encodingsPrefer": { "$ref": "#/$defs/prefer" },
+        "transcodingPrefer": { "$ref": "#/$defs/prefer" },
+        "gpu": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["mode", "resource", "renderNode", "hostPath"],
+          "properties": {
+            "mode": { "type": "string", "enum": ["none", "devicePlugin", "hostPath"] },
+            "resource": { "type": "string", "minLength": 1 },
+            "renderNode": { "$ref": "#/$defs/absolutePath" },
+            "hostPath": { "$ref": "#/$defs/absolutePath" }
+          }
+        },
+        "dataProtection": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["seedSecret"],
+          "properties": { "seedSecret": { "type": "string" } }
+        },
+        "extraEnv": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["name"],
+            "properties": {
+              "name": { "type": "string", "minLength": 1 },
+              "value": { "type": "string" },
+              "valueFrom": { "type": "object" }
+            }
+          }
+        },
+        "nodeSelector": { "$ref": "#/$defs/stringMap" },
+        "resources": { "$ref": "#/$defs/resources" }
+      }
+    },
+    "postgres": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["enabled", "image", "auth"],
+      "properties": {
+        "enabled": { "type": "boolean" },
+        "image": { "$ref": "#/$defs/image" },
+        "auth": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["database", "username", "existingSecret", "passwordKey", "password"],
+          "properties": {
+            "database": { "type": "string", "minLength": 1 },
+            "username": { "type": "string", "minLength": 1 },
+            "existingSecret": { "type": "string" },
+            "passwordKey": { "type": "string", "minLength": 1 },
+            "password": { "type": "string", "pattern": "^[^;]*$" }
+          }
+        },
+        "nodeSelector": { "$ref": "#/$defs/stringMap" },
+        "resources": { "$ref": "#/$defs/resources" }
+      }
+    },
+    "externalDatabase": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["connectionSecret", "connectionKey"],
+      "properties": {
+        "connectionSecret": { "type": "string" },
+        "connectionKey": { "type": "string", "minLength": 1 }
+      }
+    },
+    "vela": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["enabled", "image"],
+      "properties": {
+        "enabled": { "type": "boolean" },
+        "image": { "$ref": "#/$defs/image" },
+        "nodeSelector": { "$ref": "#/$defs/stringMap" },
+        "resources": { "$ref": "#/$defs/resources" }
+      }
+    },
+    "route": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "host", "ingress", "ingressRoute"],
+      "properties": {
+        "kind": { "type": "string", "enum": ["ingress", "ingressRoute", "none"] },
+        "host": { "type": "string", "pattern": "^[^/\\s]*$" },
+        "ingress": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["className", "annotations", "tls"],
+          "properties": {
+            "className": { "type": "string" },
+            "annotations": { "$ref": "#/$defs/stringMap" },
+            "tls": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "hosts": { "type": "array", "items": { "type": "string" } },
+                  "secretName": { "type": "string" }
+                }
+              }
+            }
+          }
+        },
+        "ingressRoute": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["entryPoints"],
+          "properties": {
+            "entryPoints": { "type": "array", "minItems": 1, "items": { "type": "string", "minLength": 1 } },
+            "tls": { "type": ["object", "null"] }
+          }
+        }
+      }
+    },
+    "persistence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["recordings", "encodes", "thumbnails", "captions", "keys", "db"],
+      "properties": {
+        "recordings": { "$ref": "#/$defs/storage" },
+        "encodes": { "$ref": "#/$defs/storage" },
+        "thumbnails": { "$ref": "#/$defs/storageOrEmptyDir" },
+        "captions": { "$ref": "#/$defs/storageOrEmptyDir" },
+        "keys": { "$ref": "#/$defs/storage" },
+        "db": { "$ref": "#/$defs/storage" }
+      }
+    }
+  },
+  "$defs": {
+    "absolutePath": { "type": "string", "pattern": "^/" },
+    "stringMap": { "type": "object", "additionalProperties": { "type": "string" } },
+    "prefer": { "type": "string", "enum": ["Software", "Vaapi"] },
+    "resources": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "requests": { "type": "object", "additionalProperties": { "type": ["string", "number"] } },
+        "limits": { "type": "object", "additionalProperties": { "type": ["string", "number"] } }
+      }
+    },
+    "image": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["repository", "tag", "pullPolicy"],
+      "properties": {
+        "repository": { "type": "string", "minLength": 1 },
+        "tag": { "type": "string", "minLength": 1 },
+        "pullPolicy": { "type": "string", "enum": ["Always", "IfNotPresent", "Never"] }
+      }
+    },
+    "storageFields": {
+      "type": "object",
+      "required": ["type", "size", "storageClass", "accessModes", "existingClaim", "hostPath"],
+      "properties": {
+        "size": { "type": "string", "pattern": "^[0-9]+(\\.[0-9]+)?(Ki|Mi|Gi|Ti|Pi|Ei|k|M|G|T|P|E)?$" },
+        "storageClass": { "type": "string" },
+        "accessModes": { "type": "array", "minItems": 1, "items": { "type": "string", "enum": ["ReadWriteOnce", "ReadOnlyMany", "ReadWriteMany", "ReadWriteOncePod"] } },
+        "existingClaim": { "type": "string" },
+        "hostPath": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["path", "type"],
+          "properties": {
+            "path": { "type": "string", "pattern": "^(/.*)?$" },
+            "type": { "type": "string", "enum": ["Directory", "DirectoryOrCreate"] }
+          }
+        }
+      }
+    },
+    "storage": {
+      "allOf": [
+        { "$ref": "#/$defs/storageFields" },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "type": { "type": "string", "enum": ["pvc", "existingClaim", "hostPath"] },
+            "size": true, "storageClass": true, "accessModes": true, "existingClaim": true, "hostPath": true
+          }
+        }
+      ]
+    },
+    "storageOrEmptyDir": {
+      "allOf": [
+        { "$ref": "#/$defs/storageFields" },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "type": { "type": "string", "enum": ["pvc", "existingClaim", "hostPath", "emptyDir"] },
+            "size": true, "storageClass": true, "accessModes": true, "existingClaim": true, "hostPath": true
+          }
+        }
+      ]
+    }
+  }
+}

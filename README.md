@@ -2,7 +2,8 @@
 
 日本のテレビ放送を録画して観るサーバを、Docker の入った Linux 1 台に立てる。\
 録画と配信は [Carina](https://github.com/NewWorldOrg/Carina)、画面は [Vela](https://github.com/NewWorldOrg/Vela) が受け持つ。\
-Pyxis はその 2 つを、動作を確かめた版の組で固定して配る。
+Pyxis はその 2 つを、動作を確かめた版の組で固定して配る。\
+Kubernetes に立てるなら、同じ版の組を固定した Helm チャートが `charts/pyxis` にある。
 
 立てると、ブラウザから次のことをする。
 
@@ -174,6 +175,208 @@ services:
 あわせて `app` の `environment` に `CARINA_KNOWN_NETWORKS` を足し、前段のアドレスの範囲を書く。\
 これが無いと `X-Forwarded-*` が読まれず、https で開いてもセッション Cookie に Secure が付かない。
 
+## Helm で立てる
+
+Kubernetes に立てるなら、`charts/pyxis` のチャートを使う。\
+compose と同じイメージの版を固定していて、driver・app・画面・データベースを部品ごとに有効と無効を切り替えられる。\
+チャートはまだ公開先に置いていないので、リポジトリを取って `charts/pyxis` のパスを渡す。
+
+driver は特権で動き、チューナーと pcscd のソケットをホストから受けるので、名前空間の Pod Security を privileged にしておく。
+
+```bash
+kubectl create namespace tv
+kubectl label namespace tv pod-security.kubernetes.io/enforce=privileged
+```
+
+driver と app はソケットのディレクトリをホストのパスで共有するので、同じノードに置く。\
+ノードが複数なら `nodeSelector` にチューナーのあるノードを書く。
+
+値のファイルに、チューナー・置き場・前段・ブラウザから届くアドレスを書く。\
+データベースのパスワードは Secret に置き、その名前を `postgres.auth.existingSecret` に書く。
+
+```yaml
+# values.yaml
+nodeSelector:
+  kubernetes.io/hostname: node-1
+driver:
+  config:
+    outputRoots:
+      - name: primary
+        path: /srv/recordings
+    tuner:
+      backend: dvb
+    devices:
+      - id: adapter0.frontend0
+        kind: terrestrial
+        devicePath: /dev/dvb/adapter0/frontend0
+  hostDevices:
+    - /dev/dvb/adapter0
+  pcscd:
+    enabled: true
+app:
+  publicOrigin: https://tv.example.com
+  knownNetworks:
+    - 10.42.0.0/16
+postgres:
+  auth:
+    existingSecret: pyxis-db
+route:
+  kind: ingressRoute
+  host: tv.example.com
+persistence:
+  recordings:
+    type: hostPath
+    hostPath:
+      path: /srv/pyxis/recordings
+```
+
+```bash
+kubectl -n tv create secret generic pyxis-db --from-literal=password=...
+helm install carina charts/pyxis -n tv -f values.yaml
+```
+
+リリース名は資源の名前の頭になり、`carina` なら `carina-driver`・`carina-app`・`carina-db`・`carina-vela` になる。\
+app は起動のたびに初期化コンテナでデータベースのスキーマを当て、古い app が止まってから当たる。\
+ローカルアカウントのパスワードは app のログに 1 度だけ出る。
+
+```bash
+kubectl -n tv logs deploy/carina-app -c app | grep 'Sign in as'
+```
+
+何も書かずに入れると、合成のチューナー・同梱のデータベース・GPU なし・標準の Ingress で動く。\
+そのときもデータベースのパスワードだけは要り、無ければチャートは描画を止める。
+
+### 値
+
+主な値は次のとおりで、全部の値と説明は `charts/pyxis/values.yaml` にある。
+
+| 値 | 用途 | 既定 |
+| --- | --- | --- |
+| `nodeSelector` | 全部の Pod に当てる nodeSelector。部品ごとの `driver.nodeSelector` などで上書きできる | 空 |
+| `carina.uid` / `carina.gid` | app を動かす番号。gid は driver の `socketGroupId` にも入る | `10001` |
+| `driver.enabled` / `app.enabled` / `vela.enabled` / `postgres.enabled` | その部品を作るか | `true` |
+| `driver.image.tag` / `app.image.tag` / `vela.image.tag` / `postgres.image.tag` | イメージの版。compose と同じ数字で固定してある | 版の表のとおり |
+| `driver.config` | `driver.json` の中身をそのまま書く。`socketGroupId` はチャートが入れる | 合成のチューナー |
+| `driver.hostDevices` | ホストの装置のディレクトリの一覧。同じパスで driver に渡す | 空 |
+| `driver.pcscd.enabled` | ホストの `/run/pcscd` を読み取り専用で渡すか | `false` |
+| `driver.socket.hostPath` | driver と app が共有するソケットのディレクトリのホスト側のパス | `/run/pyxis` |
+| `driver.hostNetwork` | ホストのネットワークで動かすか。カードを貸す driver は `true` | `false` |
+| `driver.lendingKey.existingSecret` | カードの貸し借りの鍵を持つ Secret。`/etc/carina/lending.key` に所有者だけが読める形で置く | 空 |
+| `driver.terminationGracePeriodSeconds` | 止めるときに録画の終わりを待つ秒数。`shutdownGraceHours` より長くする | `25200` |
+| `app.publicOrigin` | ブラウザから届くアドレス。OIDC でサインインするときに要る | 空 |
+| `app.knownNetworks` | `X-Forwarded-*` を信じる前段の網の一覧。Ingress のコントローラの Pod がいる網を書く | 空 |
+| `app.encodingsPrefer` / `app.transcodingPrefer` | 変換器。`Software` か `Vaapi` | `Software` |
+| `app.gpu.mode` | GPU の渡し方。`none`、`devicePlugin`、`hostPath` | `none` |
+| `app.gpu.resource` | device plugin に要求する資源の名前 | `gpu.intel.com/i915` |
+| `app.gpu.renderNode` | VAAPI で使う GPU の描画ノード | `/dev/dri/renderD128` |
+| `app.dataProtection.seedSecret` | 鍵の種を持つ Secret。鍵の置き場が空のときだけ写す | 空 |
+| `app.extraEnv` | app に足す環境変数の一覧。Carina の README の `app` の節の設定に使う | 空 |
+| `postgres.auth.existingSecret` / `postgres.auth.passwordKey` | パスワードを持つ Secret とそのキー | 空 / `password` |
+| `postgres.auth.password` | Secret を名指ししないときに、チャートが作る Secret に入れるパスワード | 空 |
+| `externalDatabase.connectionSecret` / `externalDatabase.connectionKey` | 同梱のデータベースを使わないときの、接続文字列を持つ Secret とそのキー | 空 / `connection` |
+| `route.kind` | 前段の種類。`ingress`、`ingressRoute`、`none` | `ingress` |
+| `route.host` | ブラウザが開くホスト名。空なら全部を受ける | 空 |
+| `route.ingress.className` / `route.ingress.annotations` / `route.ingress.tls` | 標準の Ingress の設定 | 空 |
+| `route.ingressRoute.entryPoints` / `route.ingressRoute.tls` | Traefik の IngressRoute の設定。`tls` を `null` にすると http | `websecure` / `{}` |
+| `persistence.<置き場>.type` | `recordings`・`encodes`・`thumbnails`・`captions`・`keys`・`db` の置き方。`pvc`、`existingClaim`、`hostPath` | `pvc` |
+| `<部品>.resources` | 部品ごとの resources | 空 |
+
+### 置き場
+
+置き場ごとに `type` を選ぶ。\
+`pvc` は PVC を作り、リリースを消しても残す。\
+`existingClaim` は手で作った PVC を使う。\
+`hostPath` はホストのディレクトリで、無ければ起動しない。\
+サムネイルと字幕は `emptyDir` も選べ、Pod と一緒に消えて作り直される。
+
+録画は driver が書き、app は読み取り専用で同じ実体を見る。\
+2 つは同じノードに置くので、ReadWriteOnce の PVC でよい。\
+鍵の置き場はデータベースとは別のバックアップの対象にする。
+
+### Helm での GPU
+
+Intel の GPU をクラスタの device plugin で渡すなら `app.gpu.mode` を `devicePlugin` にする。\
+device plugin はクラスタ全体のものなので、チャートには入っていない。\
+device plugin が作る装置は app のユーザーが開けない。\
+そのため app は root で始まり、装置のグループを app のものに替えてから権限を落とす。\
+`hostPath` は `/dev/dri` をディレクトリごと渡す形で、装置を開くために app を特権にするので、device plugin のほうを勧める。\
+どちらも渡しただけでは変換はソフトウェアのままで、`app.encodingsPrefer` と `app.transcodingPrefer` を `Vaapi` にする。
+
+### Helm での前段
+
+`ingress` は Ingress を 1 つ作り、`/api` を app に、それ以外を画面に送る。\
+`ingressRoute` は Traefik の IngressRoute を作り、同じ振り分けをする。\
+Traefik は SSE と WebSocket を既定で溜めずに通す。\
+ingress-nginx なら `route.ingress.annotations` に `nginx.ingress.kubernetes.io/proxy-buffering: "off"` と、`proxy-read-timeout` を長くする行を書く。
+
+`none` は何も作らず、自前の前段に app の Service の 8080 番と画面の Service の 3000 番を向ける。\
+その前段には「前段を自分で持つ」の 5 つを持たせる。\
+どの形でも、前段の Pod がいる網を `app.knownNetworks` に書く。
+
+### driver だけを立てる
+
+カードを貸す機械には driver だけを入れる。\
+app・画面・データベースを作らず、ホストのネットワークで口を開き、鍵を Secret から渡す。
+
+```yaml
+driver:
+  hostNetwork: true
+  config:
+    outputRoots:
+      - name: primary
+        path: /srv/recordings
+    tuner:
+      backend: dvb
+    devices:
+      - id: adapter0.frontend0
+        kind: terrestrial
+        devicePath: /dev/dvb/adapter0/frontend0
+    cardLending:
+      lend:
+        address: 0.0.0.0
+        hostNames:
+          - lender.example.com
+        keyFile: /etc/carina/lending.key
+  hostDevices:
+    - /dev/dvb/adapter0
+  pcscd:
+    enabled: true
+  lendingKey:
+    existingSecret: pyxis-lending-key
+app:
+  enabled: false
+vela:
+  enabled: false
+postgres:
+  enabled: false
+route:
+  kind: none
+```
+
+```bash
+openssl rand -base64 48 > lending.key
+kubectl -n tv create secret generic pyxis-lending-key --from-file=key=lending.key
+```
+
+借りる側の driver は `config` に `cardLending.borrow` を書き、同じ Secret を渡す。\
+貸し借りのキーは Carina の README の `driver` の節にある。
+
+### Helm での更新と戻し方
+
+新しい版のチャートを `helm upgrade carina charts/pyxis -n tv -f values.yaml` で当てる。\
+app は古いものが止まってから新しいものが上がり、そのときにスキーマを当てるので、列や表を消す変更でも古い app を壊さない。\
+driver のイメージの版が前と同じなら driver は作り直されず、録画は続く。\
+driver の版が変わる更新は、「更新」の節と同じく録画中とライブの視聴中を避ける。
+
+控えは compose と同じ `pg_dump` で取る。
+
+```bash
+kubectl -n tv exec sts/carina-db -- pg_dump -U carina -Fc carina > carina-$(date +%Y%m%d).dump
+```
+
+戻すときは `helm rollback` で前の版のチャートに戻してから、「戻し方」の節と同じ手順でデータベースを入れ直す。\
+PostgreSQL のメジャーの版上げは `pg_dump` と `pg_restore` が要り、チャートは自動ではやらない。
+
 ## 更新
 
 Pyxis の新しい版は、`compose.yml` のイメージの版を上げたリリースとして出る。\
@@ -254,7 +457,8 @@ docker compose logs driver
 | --- | --- | --- | --- | --- | --- |
 | 未リリース | v1.0.0 | v1.0.0 | v1.0.0 | 18.6 | 2.11.7 |
 
-イメージの版は `compose.yml` に数字で書いてあり、`latest` は使わない。\
+イメージの版は `compose.yml` と `charts/pyxis/values.yaml` に数字で書いてあり、`latest` は使わない。\
+2 か所が同じ版であることは CI が確かめる。\
 Pyxis の版は、その組で起動・録画・再生を確かめてから付ける。
 
 ## ライセンス

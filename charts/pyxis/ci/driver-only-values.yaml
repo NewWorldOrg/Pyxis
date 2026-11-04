@@ -1,0 +1,39 @@
+# driver だけを別の機械に立てる形。ホストのネットワークでカードを貸し、app・画面・DB・前段は作らない
+driver:
+  hostNetwork: true
+  config:
+    outputRoots:
+      - name: primary
+        path: /srv/recordings
+    tuner:
+      backend: dvb
+    devices:
+      - id: adapter0.frontend0
+        kind: terrestrial
+        devicePath: /dev/dvb/adapter0/frontend0
+        enabled: true
+    cardLending:
+      lend:
+        address: 0.0.0.0
+        hostNames:
+          - lender.example.com
+        keyFile: /etc/carina/lending.key
+  hostDevices:
+    - /dev/dvb/adapter0
+  pcscd:
+    enabled: true
+  lendingKey:
+    existingSecret: pyxis-lending-key
+app:
+  enabled: false
+vela:
+  enabled: false
+postgres:
+  enabled: false
+route:
+  kind: none
+persistence:
+  recordings:
+    type: hostPath
+    hostPath:
+      path: /srv/pyxis/recordings

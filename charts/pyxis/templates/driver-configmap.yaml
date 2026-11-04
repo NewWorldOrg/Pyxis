@@ -1,0 +1,12 @@
+{{- if .Values.driver.enabled }}
+{{- $config := merge (dict "socketGroupId" (int .Values.carina.gid)) .Values.driver.config }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "pyxis.partName" (dict "root" . "part" "driver") }}
+  labels:
+    {{- include "pyxis.labels" (dict "root" . "part" "driver") | nindent 4 }}
+data:
+  driver.json: |
+    {{- toPrettyJson $config | nindent 4 }}
+{{- end }}

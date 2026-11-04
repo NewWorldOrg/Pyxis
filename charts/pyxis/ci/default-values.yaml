@@ -1,0 +1,4 @@
+# 既定の形。合成のチューナー、同梱のデータベース、GPU なし、標準の Ingress
+postgres:
+  auth:
+    password: check
