@@ -1,0 +1,22 @@
+{{ .Release.Name }} を名前空間 {{ .Release.Namespace }} に入れた。
+{{- if .Values.driver.enabled }}
+
+driver は特権で動く。名前空間の Pod Security が privileged でないと driver は上がらない。
+
+  kubectl label namespace {{ .Release.Namespace }} pod-security.kubernetes.io/enforce=privileged
+{{- end }}
+{{- if and .Values.driver.enabled .Values.app.enabled (not .Values.nodeSelector) (not .Values.driver.nodeSelector) (not .Values.app.nodeSelector) }}
+
+nodeSelector が無い。ノードが複数のクラスタでは driver と app が別のノードに載り、ソケットでつながらない。
+値の nodeSelector に、チューナーのあるノードを書く。
+{{- end }}
+{{- if .Values.app.enabled }}
+
+最初の起動で app がローカルアカウントを作り、ユーザー名とパスワードをログに 1 度だけ書く。
+
+  kubectl -n {{ .Release.Namespace }} logs deploy/{{ include "pyxis.partName" (dict "root" . "part" "app") }} -c app | grep 'Sign in as'
+{{- end }}
+{{- if and .Values.vela.enabled (ne .Values.route.kind "none") }}
+
+ブラウザで {{ if .Values.route.host }}https://{{ .Values.route.host }}/{{ else }}前段のアドレス{{ end }} を開く。
+{{- end }}

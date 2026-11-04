@@ -1,0 +1,32 @@
+# 外のデータベース。同梱の DB を作らず、接続文字列を Secret から読む。GPU は hostPath、サムネイルと字幕は emptyDir
+postgres:
+  enabled: false
+externalDatabase:
+  connectionSecret: pyxis-db
+  connectionKey: connection
+app:
+  gpu:
+    mode: hostPath
+route:
+  kind: ingress
+  host: tv.example.com
+  ingress:
+    className: nginx
+    annotations:
+      nginx.ingress.kubernetes.io/proxy-buffering: "off"
+      nginx.ingress.kubernetes.io/proxy-read-timeout: "3600"
+    tls:
+      - hosts:
+          - tv.example.com
+        secretName: tv-example-com-tls
+persistence:
+  recordings:
+    type: existingClaim
+    existingClaim: recordings
+  encodes:
+    type: pvc
+    storageClass: fast
+  thumbnails:
+    type: emptyDir
+  captions:
+    type: emptyDir

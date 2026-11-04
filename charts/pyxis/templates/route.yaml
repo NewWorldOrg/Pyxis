@@ -1,0 +1,80 @@
+{{- $route := .Values.route }}
+{{- $app := include "pyxis.partName" (dict "root" . "part" "app") }}
+{{- $vela := include "pyxis.partName" (dict "root" . "part" "vela") }}
+{{- if and (ne $route.kind "none") (or .Values.app.enabled .Values.vela.enabled) }}
+{{- if eq $route.kind "ingress" }}
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ .Release.Name }}
+  labels:
+    {{- include "pyxis.labels" (dict "root" . "part" "route") | nindent 4 }}
+  {{- with $route.ingress.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  {{- with $route.ingress.className }}
+  ingressClassName: {{ . }}
+  {{- end }}
+  {{- with $route.ingress.tls }}
+  tls:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+  rules:
+    - {{ with $route.host }}host: {{ . | quote }}
+      {{ end }}http:
+        paths:
+          {{- if .Values.app.enabled }}
+          - path: /api
+            pathType: Prefix
+            backend:
+              service:
+                name: {{ $app }}
+                port:
+                  name: http
+          {{- end }}
+          {{- if .Values.vela.enabled }}
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: {{ $vela }}
+                port:
+                  name: http
+          {{- end }}
+{{- else if eq $route.kind "ingressRoute" }}
+{{- $host := "" }}
+{{- with $route.host }}{{ $host = printf "Host(`%s`) && " . }}{{ end }}
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: {{ .Release.Name }}
+  labels:
+    {{- include "pyxis.labels" (dict "root" . "part" "route") | nindent 4 }}
+spec:
+  entryPoints:
+    {{- toYaml $route.ingressRoute.entryPoints | nindent 4 }}
+  routes:
+    {{- if .Values.app.enabled }}
+    - match: {{ printf "%sPathPrefix(`/api`)" $host | quote }}
+      kind: Rule
+      services:
+        - name: {{ $app }}
+          port: 8080
+    {{- end }}
+    {{- if .Values.vela.enabled }}
+    - match: {{ printf "%sPathPrefix(`/`)" $host | quote }}
+      kind: Rule
+      services:
+        - name: {{ $vela }}
+          port: 3000
+    {{- end }}
+  {{- if not (kindIs "invalid" $route.ingressRoute.tls) }}
+  tls:
+    {{- toYaml $route.ingressRoute.tls | nindent 4 }}
+  {{- end }}
+{{- else }}
+{{- fail "route.kind は ingress、ingressRoute、none のどれかにする" }}
+{{- end }}
+{{- end }}

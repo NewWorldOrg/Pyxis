@@ -1,0 +1,181 @@
+{{- if .Values.app.enabled }}
+{{- $app := .Values.app }}
+{{- $image := printf "%s:%s" $app.image.repository $app.image.tag }}
+{{- $gid := int .Values.carina.gid }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "pyxis.partName" (dict "root" . "part" "app") }}
+  labels:
+    {{- include "pyxis.labels" (dict "root" . "part" "app") | nindent 4 }}
+spec:
+  # 予約の確認やエンコードの列をプロセスの中に持つので 1 つだけ。古い app が止まってから migrate を当てる
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      {{- include "pyxis.selectorLabels" (dict "root" . "part" "app") | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "pyxis.selectorLabels" (dict "root" . "part" "app") | nindent 8 }}
+    spec:
+      {{- with include "pyxis.imagePullSecrets" . }}{{ . | trim | nindent 6 }}{{- end }}
+      {{- with include "pyxis.nodeSelector" (dict "root" . "own" $app.nodeSelector) }}{{ . | trim | nindent 6 }}{{- end }}
+      securityContext:
+        fsGroup: {{ $gid }}
+        {{- if eq $app.gpu.mode "none" }}
+        runAsUser: {{ int .Values.carina.uid }}
+        runAsGroup: {{ $gid }}
+        {{- end }}
+      initContainers:
+        {{- if $app.dataProtection.seedSecret }}
+        # client secret を封じる鍵の種を、置き場に無いときだけ写す。あとから増えた鍵には触らない
+        - name: seed-keys
+          image: {{ $image | quote }}
+          imagePullPolicy: {{ $app.image.pullPolicy }}
+          command:
+            - bash
+            - -c
+            - |
+              set -eu
+              for seed in /seed/*; do
+                [ -f "$seed" ] || continue
+                kept=/var/lib/carina/keys/$(basename "$seed")
+                [ -e "$kept" ] || install -o {{ int .Values.carina.uid }} -g {{ $gid }} -m 0600 "$seed" "$kept"
+              done
+          securityContext:
+            runAsUser: 0
+            runAsGroup: 0
+          volumeMounts:
+            - name: keys
+              mountPath: /var/lib/carina/keys
+            - name: keys-seed
+              mountPath: /seed
+              readOnly: true
+        {{- end }}
+        - name: migrate
+          image: {{ $image | quote }}
+          imagePullPolicy: {{ $app.image.pullPolicy }}
+          env:
+            - name: CARINA_ROLE
+              value: migrate
+            {{- include "pyxis.connectionStringEnv" . | trim | nindent 12 }}
+      containers:
+        - name: app
+          image: {{ $image | quote }}
+          imagePullPolicy: {{ $app.image.pullPolicy }}
+          {{- if eq $app.gpu.mode "devicePlugin" }}
+          # device plugin が作る装置は root:root 0660 で app が開けない。グループを app のものに替えてから entrypoint に渡す
+          command:
+            - bash
+            - -c
+            - chgrp {{ $gid }} /dev/dri/* && exec /usr/local/bin/carina app
+          {{- end }}
+          {{- if eq $app.gpu.mode "hostPath" }}
+          # hostPath で渡した装置は device cgroup が開かせないので、特権にする
+          securityContext:
+            privileged: true
+          {{- end }}
+          env:
+            - name: CARINA_ROLE
+              value: app
+            {{- include "pyxis.connectionStringEnv" . | trim | nindent 12 }}
+            - name: CARINA_DATA_PROTECTION_KEYS
+              value: /var/lib/carina/keys
+            {{- with $app.publicOrigin }}
+            - name: CARINA_PUBLIC_ORIGIN
+              value: {{ . | quote }}
+            {{- end }}
+            {{- with $app.knownNetworks }}
+            - name: CARINA_KNOWN_NETWORKS
+              value: {{ join "," . | quote }}
+            {{- end }}
+            - name: Integrity__OutputRoots
+              value: primary=/srv/recordings
+            - name: Thumbnails__WrittenTo
+              value: /srv/thumbnails
+            - name: Captions__WrittenTo
+              value: /srv/captions
+            - name: Encodings__OutputRoots
+              value: encodes=/srv/encodes
+            - name: Encodings__Prefer
+              value: {{ $app.encodingsPrefer }}
+            - name: Transcoding__Prefer
+              value: {{ $app.transcodingPrefer }}
+            - name: Machine__RenderNode
+              value: {{ $app.gpu.renderNode }}
+            {{- with $app.extraEnv }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+          ports:
+            - name: http
+              containerPort: 8080
+          volumeMounts:
+            - name: socket
+              mountPath: /run/carina
+            - name: recordings
+              mountPath: /srv/recordings
+              readOnly: true
+            - name: encodes
+              mountPath: /srv/encodes
+            - name: thumbnails
+              mountPath: /srv/thumbnails
+            - name: captions
+              mountPath: /srv/captions
+            - name: keys
+              mountPath: /var/lib/carina/keys
+            {{- if eq $app.gpu.mode "hostPath" }}
+            - name: dri
+              mountPath: /dev/dri
+            {{- end }}
+          startupProbe:
+            httpGet:
+              path: /api/health
+              port: http
+            periodSeconds: 5
+            timeoutSeconds: 5
+            failureThreshold: 60
+          readinessProbe:
+            httpGet:
+              path: /api/health
+              port: http
+            periodSeconds: 10
+            timeoutSeconds: 5
+          {{- $resources := deepCopy $app.resources }}
+          {{- if eq $app.gpu.mode "devicePlugin" }}
+          {{- $_ := set $resources "requests" (merge (dict $app.gpu.resource "1") ($resources.requests | default dict)) }}
+          {{- $_ := set $resources "limits" (merge (dict $app.gpu.resource "1") ($resources.limits | default dict)) }}
+          {{- end }}
+          {{- with $resources }}
+          resources:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+      volumes:
+        - name: socket
+          hostPath:
+            path: {{ .Values.driver.socket.hostPath }}
+            type: DirectoryOrCreate
+        - name: recordings
+          {{- include "pyxis.volumeSource" (dict "root" . "name" "recordings") | trim | nindent 10 }}
+        - name: encodes
+          {{- include "pyxis.volumeSource" (dict "root" . "name" "encodes") | trim | nindent 10 }}
+        - name: thumbnails
+          {{- include "pyxis.volumeSource" (dict "root" . "name" "thumbnails") | trim | nindent 10 }}
+        - name: captions
+          {{- include "pyxis.volumeSource" (dict "root" . "name" "captions") | trim | nindent 10 }}
+        - name: keys
+          {{- include "pyxis.volumeSource" (dict "root" . "name" "keys") | trim | nindent 10 }}
+        {{- if $app.dataProtection.seedSecret }}
+        - name: keys-seed
+          secret:
+            secretName: {{ $app.dataProtection.seedSecret }}
+        {{- end }}
+        {{- if eq $app.gpu.mode "hostPath" }}
+        - name: dri
+          hostPath:
+            path: {{ $app.gpu.hostPath }}
+            type: Directory
+        {{- end }}
+{{- end }}

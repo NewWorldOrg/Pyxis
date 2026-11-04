@@ -1,0 +1,98 @@
+{{- if .Values.driver.enabled }}
+{{- $driver := .Values.driver }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "pyxis.partName" (dict "root" . "part" "driver") }}
+  labels:
+    {{- include "pyxis.labels" (dict "root" . "part" "driver") | nindent 4 }}
+spec:
+  # チューナーを占有するので 1 つだけ動かし、入れ替えも古いものが止まってから
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      {{- include "pyxis.selectorLabels" (dict "root" . "part" "driver") | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "pyxis.selectorLabels" (dict "root" . "part" "driver") | nindent 8 }}
+      annotations:
+        checksum/config: {{ include (print $.Template.BasePath "/driver-configmap.yaml") . | sha256sum }}
+    spec:
+      {{- with include "pyxis.imagePullSecrets" . }}{{ . | trim | nindent 6 }}{{- end }}
+      {{- with include "pyxis.nodeSelector" (dict "root" . "own" $driver.nodeSelector) }}{{ . | trim | nindent 6 }}{{- end }}
+      {{- if $driver.hostNetwork }}
+      hostNetwork: true
+      {{- end }}
+      # 録画中に止められると録画の終わりまで待つ。shutdownGraceHours より長くする
+      terminationGracePeriodSeconds: {{ $driver.terminationGracePeriodSeconds }}
+      containers:
+        - name: driver
+          image: {{ printf "%s:%s" $driver.image.repository $driver.image.tag | quote }}
+          imagePullPolicy: {{ $driver.image.pullPolicy }}
+          env:
+            - name: CARINA_ROLE
+              value: driver
+            - name: CARINA_DRIVER_CONFIG
+              value: /etc/carina/driver.json
+          securityContext:
+            privileged: true
+          volumeMounts:
+            - name: config
+              mountPath: /etc/carina/driver.json
+              subPath: driver.json
+              readOnly: true
+            - name: socket
+              mountPath: /run/carina
+            - name: recordings
+              mountPath: /srv/recordings
+            {{- if $driver.pcscd.enabled }}
+            - name: pcscd
+              mountPath: /run/pcscd
+              readOnly: true
+            {{- end }}
+            {{- if $driver.lendingKey.existingSecret }}
+            - name: lending-key
+              mountPath: /etc/carina/lending.key
+              subPath: {{ $driver.lendingKey.key }}
+              readOnly: true
+            {{- end }}
+            {{- range $i, $device := $driver.hostDevices }}
+            - name: device-{{ $i }}
+              mountPath: {{ $device }}
+            {{- end }}
+          {{- with $driver.resources }}
+          resources:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+      volumes:
+        - name: config
+          configMap:
+            name: {{ include "pyxis.partName" (dict "root" . "part" "driver") }}
+        - name: socket
+          hostPath:
+            path: {{ $driver.socket.hostPath }}
+            type: DirectoryOrCreate
+        - name: recordings
+          {{- include "pyxis.volumeSource" (dict "root" . "name" "recordings") | trim | nindent 10 }}
+        {{- if $driver.pcscd.enabled }}
+        - name: pcscd
+          hostPath:
+            path: /run/pcscd
+            type: Directory
+        {{- end }}
+        {{- if $driver.lendingKey.existingSecret }}
+        - name: lending-key
+          secret:
+            secretName: {{ $driver.lendingKey.existingSecret }}
+            defaultMode: 0400
+        {{- end }}
+        {{- range $i, $device := $driver.hostDevices }}
+        - name: device-{{ $i }}
+          hostPath:
+            path: {{ $device }}
+            type: Directory
+        {{- end }}
+{{- end }}

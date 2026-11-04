@@ -88,3 +88,41 @@ jobs:
       - name: Take everything down, volumes included
         if: always()
         run: docker compose down -v -t 60
+
+  chart:
+    runs-on: ubuntu-latest
+    env:
+      KUBECONFORM_VERSION: v0.7.0
+      KUBECONFORM_SHA256: c31518ddd122663b3f3aa874cfe8178cb0988de944f29c74a0b9260920d115d3
+    steps:
+      - uses: actions/checkout@v7
+      - uses: azure/setup-helm@v4
+        with:
+          version: v3.19.0
+      - name: kubeconform, pinned by version and checksum
+        run: |
+          curl -fsSL -o kubeconform.tar.gz \
+            "https://github.com/yannh/kubeconform/releases/download/${KUBECONFORM_VERSION}/kubeconform-linux-amd64.tar.gz"
+          echo "${KUBECONFORM_SHA256}  kubeconform.tar.gz" | sha256sum -c -
+          mkdir -p "${RUNNER_TEMP}/bin"
+          tar -C "${RUNNER_TEMP}/bin" -xzf kubeconform.tar.gz kubeconform
+          echo "${RUNNER_TEMP}/bin" >> "${GITHUB_PATH}"
+      - name: The images in compose.yml, values.yaml and Chart.yaml are the same versions
+        run: scripts/check-versions.sh
+      - name: helm lint with every set of values under ci/
+        run: |
+          for values in charts/pyxis/ci/*-values.yaml; do
+            echo "== ${values}"
+            helm lint --strict charts/pyxis -f "${values}"
+          done
+      - name: helm template and kubeconform with every set of values under ci/, IngressRoute checked against the Traefik CRD schema
+        run: |
+          for values in charts/pyxis/ci/*-values.yaml; do
+            echo "== ${values}"
+            helm template carina charts/pyxis -f "${values}" \
+              | kubeconform -strict -summary \
+                  -schema-location default \
+                  -schema-location 'https://raw.githubusercontent.com/datreeio/CRDs-catalog/main/{{.Group}}/{{.ResourceKind}}_{{.ResourceAPIVersion}}.json'
+          done
+      - name: No chart version in the Pod templates, the checksum on the driver only, Service names from the release name
+        run: scripts/check-rendering.sh

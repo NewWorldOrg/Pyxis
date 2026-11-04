@@ -1,0 +1,59 @@
+{{- if .Values.postgres.enabled }}
+{{- $db := .Values.postgres }}
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: {{ include "pyxis.partName" (dict "root" . "part" "db") }}
+  labels:
+    {{- include "pyxis.labels" (dict "root" . "part" "db") | nindent 4 }}
+spec:
+  replicas: 1
+  serviceName: {{ include "pyxis.partName" (dict "root" . "part" "db") }}
+  selector:
+    matchLabels:
+      {{- include "pyxis.selectorLabels" (dict "root" . "part" "db") | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "pyxis.selectorLabels" (dict "root" . "part" "db") | nindent 8 }}
+    spec:
+      {{- with include "pyxis.imagePullSecrets" . }}{{ . | trim | nindent 6 }}{{- end }}
+      {{- with include "pyxis.nodeSelector" (dict "root" . "own" $db.nodeSelector) }}{{ . | trim | nindent 6 }}{{- end }}
+      containers:
+        - name: postgres
+          image: {{ printf "%s:%s" $db.image.repository $db.image.tag | quote }}
+          imagePullPolicy: {{ $db.image.pullPolicy }}
+          env:
+            - name: POSTGRES_DB
+              value: {{ $db.auth.database | quote }}
+            - name: POSTGRES_USER
+              value: {{ $db.auth.username | quote }}
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "pyxis.dbSecretName" . }}
+                  key: {{ $db.auth.passwordKey }}
+          ports:
+            - name: postgres
+              containerPort: 5432
+          volumeMounts:
+            - name: data
+              mountPath: /var/lib/postgresql
+          readinessProbe:
+            exec:
+              command:
+                - pg_isready
+                - -U
+                - {{ $db.auth.username | quote }}
+                - -d
+                - {{ $db.auth.database | quote }}
+            periodSeconds: 10
+            timeoutSeconds: 5
+          {{- with $db.resources }}
+          resources:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+      volumes:
+        - name: data
+          {{- include "pyxis.volumeSource" (dict "root" . "name" "db") | trim | nindent 10 }}
+{{- end }}

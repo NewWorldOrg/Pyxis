@@ -1,0 +1,51 @@
+{{- if .Values.vela.enabled }}
+{{- $vela := .Values.vela }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "pyxis.partName" (dict "root" . "part" "vela") }}
+  labels:
+    {{- include "pyxis.labels" (dict "root" . "part" "vela") | nindent 4 }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      {{- include "pyxis.selectorLabels" (dict "root" . "part" "vela") | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "pyxis.selectorLabels" (dict "root" . "part" "vela") | nindent 8 }}
+    spec:
+      {{- with include "pyxis.imagePullSecrets" . }}{{ . | trim | nindent 6 }}{{- end }}
+      {{- with include "pyxis.nodeSelector" (dict "root" . "own" $vela.nodeSelector) }}{{ . | trim | nindent 6 }}{{- end }}
+      containers:
+        - name: vela
+          image: {{ printf "%s:%s" $vela.image.repository $vela.image.tag | quote }}
+          imagePullPolicy: {{ $vela.image.pullPolicy }}
+          env:
+            - name: CARINA_API_BASE_URL
+              value: {{ printf "http://%s:8080" (include "pyxis.partName" (dict "root" . "part" "app")) | quote }}
+            # next の standalone は HOSTNAME で待ち受ける。k8s は Pod 名を入れるので全部で待ち受けさせる
+            - name: HOSTNAME
+              value: 0.0.0.0
+          ports:
+            - name: http
+              containerPort: 3000
+          startupProbe:
+            httpGet:
+              path: /login
+              port: http
+            periodSeconds: 5
+            timeoutSeconds: 5
+            failureThreshold: 24
+          readinessProbe:
+            httpGet:
+              path: /login
+              port: http
+            periodSeconds: 10
+            timeoutSeconds: 5
+          {{- with $vela.resources }}
+          resources:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+{{- end }}

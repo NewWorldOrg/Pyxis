@@ -1,0 +1,32 @@
+{{- $needs := dict
+  "recordings" (or .Values.driver.enabled .Values.app.enabled)
+  "encodes" .Values.app.enabled
+  "thumbnails" .Values.app.enabled
+  "captions" .Values.app.enabled
+  "keys" .Values.app.enabled
+  "db" .Values.postgres.enabled
+}}
+{{- range $name, $needed := $needs }}
+{{- $spec := index $.Values.persistence $name }}
+{{- if and $needed (eq $spec.type "pvc") }}
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ include "pyxis.partName" (dict "root" $ "part" $name) }}
+  labels:
+    {{- include "pyxis.labels" (dict "root" $ "part" $name) | nindent 4 }}
+  annotations:
+    # リリースを消しても残す
+    helm.sh/resource-policy: keep
+spec:
+  accessModes:
+    {{- toYaml $spec.accessModes | nindent 4 }}
+  {{- if $spec.storageClass }}
+  storageClassName: {{ if eq $spec.storageClass "-" }}""{{ else }}{{ $spec.storageClass }}{{ end }}
+  {{- end }}
+  resources:
+    requests:
+      storage: {{ $spec.size }}
+{{- end }}
+{{- end }}

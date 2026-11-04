@@ -6,3 +6,7 @@ rules:
     max: 160
   truthy:
     check-keys: false
+
+# Helm のテンプレートは描く前の YAML ではない
+ignore:
+  - charts/pyxis/templates/
