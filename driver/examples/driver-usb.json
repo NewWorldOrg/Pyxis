@@ -1,0 +1,12 @@
+{
+  "socketPath": "/run/carina/driver.sock",
+  "socketGroupId": 10001,
+  "outputRoots": [{ "name": "primary", "path": "/srv/recordings" }],
+  "shutdownGraceHours": 6,
+  "tuner": {
+    "backend": "usb"
+  },
+  "devices": [
+    { "id": "usb1-1", "kind": "terrestrial", "devicePath": "/dev/bus/usb/001/002", "enabled": true }
+  ]
+}

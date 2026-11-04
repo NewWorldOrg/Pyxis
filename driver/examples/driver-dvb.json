@@ -1,0 +1,13 @@
+{
+  "socketPath": "/run/carina/driver.sock",
+  "socketGroupId": 10001,
+  "outputRoots": [{ "name": "primary", "path": "/srv/recordings" }],
+  "shutdownGraceHours": 6,
+  "tuner": {
+    "backend": "dvb"
+  },
+  "devices": [
+    { "id": "adapter0.frontend0", "kind": "terrestrial", "devicePath": "/dev/dvb/adapter0/frontend0", "enabled": true },
+    { "id": "adapter1.frontend0", "kind": "satellite", "devicePath": "/dev/dvb/adapter1/frontend0", "enabled": false }
+  ]
+}
