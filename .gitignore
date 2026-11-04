@@ -1,0 +1,19 @@
+# Local environment
+.env
+.env.*
+!.env.example
+
+# Local overrides of the compose files
+*.local.yml
+*.local.yaml
+compose.override.yml
+compose.override.yaml
+
+# Editors
+.vscode/
+.idea/
+*.swp
+
+# OS
+.DS_Store
+Thumbs.db
