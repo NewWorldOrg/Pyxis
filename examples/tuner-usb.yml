@@ -1,0 +1,6 @@
+# USB の地上デジタルチューナー (CECH-ZD1) を driver に渡す。
+# 挿し直すとノードの番号が変わるので、ノードではなく /dev/bus/usb をディレクトリごと渡す
+services:
+  driver:
+    devices:
+      - /dev/bus/usb:/dev/bus/usb

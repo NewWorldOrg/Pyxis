@@ -1,0 +1,15 @@
+# 同じオリジンで /api/* を app に、それ以外を vela に振り分ける。
+# PYXIS_SITE_ADDRESS に公開のドメインを書くと Caddy が証明書を取って https で開き、:80 なら http で開く。
+# アクセスログは取らない (外部プレイヤーの URL はパスに再生用のトークンを含む)。
+{$PYXIS_SITE_ADDRESS} {
+	handle /api/* {
+		# SSE (/api/events) を溜めない。WebSocket (/api/live/ws) と Range はそのまま通る
+		reverse_proxy app:8080 {
+			flush_interval -1
+		}
+	}
+
+	handle {
+		reverse_proxy vela:3000
+	}
+}

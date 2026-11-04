@@ -1,0 +1,9 @@
+# Linux DVB のチューナーと B-CAS カード (ホストの pcscd) を driver に渡す。
+# チューナーが増えたら devices の行を足し、driver/driver.json の devices にも同じ装置を書く
+services:
+  driver:
+    devices:
+      - /dev/dvb/adapter0:/dev/dvb/adapter0
+    volumes:
+      # pcscd は起動し直すたびにソケットを作り直すので、ファイルではなくディレクトリごと渡す
+      - /run/pcscd:/run/pcscd:ro
