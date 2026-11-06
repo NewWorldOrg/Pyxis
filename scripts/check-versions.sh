@@ -40,7 +40,7 @@ check_subset 'Chart.yaml' "$(chart_images)"
 
 while IFS= read -r image; do
     case "$image" in
-        */carina:* | */vela:* | postgres:*) ;;
+        */carina:* | */puppis:* | */vela:* | postgres:*) ;;
         *) continue ;;
     esac
     if ! values_images | grep -qxF "$image"; then

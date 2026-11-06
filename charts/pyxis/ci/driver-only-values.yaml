@@ -17,7 +17,7 @@ driver:
         address: 0.0.0.0
         hostNames:
           - lender.example.com
-        keyFile: /etc/carina/lending.key
+        keyFile: /etc/puppis/lending.key
   hostDevices:
     - /dev/dvb/adapter0
   pcscd:

@@ -24,7 +24,7 @@ services:
 
   # app は uid 10001 で動くので、app が書く置き場の所有者をその番号にそろえてから app を上げる (中のファイルには触らない)
   prepare:
-    image: ghcr.io/newworldorg/carina:app-v1.0.0
+    image: ghcr.io/newworldorg/carina:v2.0.0
     logging: *logging
     restart: 'no'
     entrypoint: ['chown', '10001:10001', '/var/lib/carina/keys', '/srv/encodes', '/srv/thumbnails', '/srv/captions']
@@ -35,7 +35,7 @@ services:
       - captions:/srv/captions
 
   migrate:
-    image: ghcr.io/newworldorg/carina:app-v1.0.0
+    image: ghcr.io/newworldorg/carina:v2.0.0
     logging: *logging
     restart: 'no'
     environment:
@@ -46,7 +46,7 @@ services:
         condition: service_healthy
 
   app:
-    image: ghcr.io/newworldorg/carina:app-v1.0.0
+    image: ghcr.io/newworldorg/carina:v2.0.0
     logging: *logging
     restart: unless-stopped
     environment:
@@ -92,7 +92,7 @@ services:
         condition: service_started
 
   driver:
-    image: ghcr.io/newworldorg/carina:driver-v1.0.0
+    image: ghcr.io/newworldorg/puppis:v0.1.1
     logging: *logging
     # 要求による停止は 0、それ以外は 70 で終わるので on-failure は使わない
     restart: unless-stopped
@@ -100,14 +100,13 @@ services:
     # 録画中に止められると録画の終わり (上限 shutdownGraceHours、既定 6 時間) まで待つ。それより長くする
     stop_grace_period: 7h
     environment:
-      CARINA_ROLE: driver
-      CARINA_DRIVER_CONFIG: /etc/carina/driver.json
+      PUPPIS_DRIVER_CONFIG: /etc/puppis/driver.json
     volumes:
-      - ./driver/driver.json:/etc/carina/driver.json:ro
+      - ./driver/driver.json:/etc/puppis/driver.json:ro
       - driver-run:/run/carina
       - ${CARINA_RECORDINGS_DIR:?}:/srv/recordings
     healthcheck:
-      test: ['CMD', '/opt/carina/driver/Carina.Driver', '--probe']
+      test: ['CMD', '/opt/puppis/Puppis.Driver', '--probe']
       interval: 30s
       timeout: 15s
       retries: 3
