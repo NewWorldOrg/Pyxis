@@ -33,15 +33,13 @@ spec:
           image: {{ printf "%s:%s" $driver.image.repository $driver.image.tag | quote }}
           imagePullPolicy: {{ $driver.image.pullPolicy }}
           env:
-            - name: CARINA_ROLE
-              value: driver
-            - name: CARINA_DRIVER_CONFIG
-              value: /etc/carina/driver.json
+            - name: PUPPIS_DRIVER_CONFIG
+              value: /etc/puppis/driver.json
           securityContext:
             privileged: true
           volumeMounts:
             - name: config
-              mountPath: /etc/carina/driver.json
+              mountPath: /etc/puppis/driver.json
               subPath: driver.json
               readOnly: true
             - name: socket
@@ -55,7 +53,7 @@ spec:
             {{- end }}
             {{- if $driver.lendingKey.existingSecret }}
             - name: lending-key
-              mountPath: /etc/carina/lending.key
+              mountPath: /etc/puppis/lending.key
               subPath: {{ $driver.lendingKey.key }}
               readOnly: true
             {{- end }}

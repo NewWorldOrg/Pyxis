@@ -14,9 +14,9 @@ driver:
   enabled: true
   image:
     # driver のイメージ
-    repository: ghcr.io/newworldorg/carina
+    repository: ghcr.io/newworldorg/puppis
     # driver のイメージのタグ。compose.yml と同じ版にする
-    tag: driver-v1.0.0
+    tag: v0.1.1
     # イメージを引く条件
     pullPolicy: IfNotPresent
   # driver.json の中身をそのまま書く。socketGroupId はチャートが carina.gid で入れ、socketPath は既定 (/run/carina/driver.sock) のままにする
@@ -51,7 +51,7 @@ driver:
   lendingKey:
     # カードの貸し借りの鍵を持つ Secret の名前。空なら渡さない
     existingSecret: ""
-    # その Secret の中の鍵のキー。/etc/carina/lending.key に所有者だけが読める形で置く
+    # その Secret の中の鍵のキー。/etc/puppis/lending.key に所有者だけが読める形で置く
     key: key
   # 止めるときに録画の終わりを待つ秒数。config.shutdownGraceHours より長くする
   terminationGracePeriodSeconds: 25200
@@ -67,7 +67,7 @@ app:
     # app と migrate のイメージ
     repository: ghcr.io/newworldorg/carina
     # app のイメージのタグ。compose.yml と同じ版にする
-    tag: app-v1.0.0
+    tag: v2.0.0
     # イメージを引く条件
     pullPolicy: IfNotPresent
   # ブラウザからこのサーバに届くアドレス (https://tv.example.com)。OIDC の redirect URI の元になる

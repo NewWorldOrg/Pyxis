@@ -1,8 +1,8 @@
 # Pyxis
 
 日本のテレビ放送を録画して観るサーバを、Docker の入った Linux 1 台に立てる。\
-録画と配信は [Carina](https://github.com/NewWorldOrg/Carina)、画面は [Vela](https://github.com/NewWorldOrg/Vela) が受け持つ。\
-Pyxis はその 2 つを、動作を確かめた版の組で固定して配る。\
+チューナーは [Puppis](https://github.com/NewWorldOrg/Puppis)、録画と配信は [Carina](https://github.com/NewWorldOrg/Carina)、画面は [Vela](https://github.com/NewWorldOrg/Vela) が受け持つ。\
+Pyxis はその 3 つを、動作を確かめた版の組で固定して配る。\
 Kubernetes に立てるなら、同じ版の組を固定した Helm チャートが `charts/pyxis` にある。
 
 立てると、ブラウザから次のことをする。
@@ -19,7 +19,7 @@ Kubernetes に立てるなら、同じ版の組を固定した Helm チャート
 
 | サービス | イメージ | 役割 |
 | --- | --- | --- |
-| `driver` | Carina | 特権で動く。チューナーを占有し、スクランブルを解いて録画ファイルを書く |
+| `driver` | Puppis | 特権で動く。チューナーを占有し、スクランブルを解いて録画ファイルを書く |
 | `app` | Carina | 番組表・予約・ライブ・エンコード・ライブラリの API。特権は持たない |
 | `migrate` | Carina | 起動のたびにデータベースのスキーマを当てて終わる |
 | `prepare` | Carina | `app` が書く置き場の所有者を合わせて終わる |
@@ -261,7 +261,7 @@ kubectl -n tv logs deploy/carina-app -c app | grep 'Sign in as'
 | `driver.pcscd.enabled` | ホストの `/run/pcscd` を読み取り専用で渡すか | `false` |
 | `driver.socket.hostPath` | driver と app が共有するソケットのディレクトリのホスト側のパス | `/run/pyxis` |
 | `driver.hostNetwork` | ホストのネットワークで動かすか。カードを貸す driver は `true` | `false` |
-| `driver.lendingKey.existingSecret` | カードの貸し借りの鍵を持つ Secret。`/etc/carina/lending.key` に所有者だけが読める形で置く | 空 |
+| `driver.lendingKey.existingSecret` | カードの貸し借りの鍵を持つ Secret。`/etc/puppis/lending.key` に所有者だけが読める形で置く | 空 |
 | `driver.terminationGracePeriodSeconds` | 止めるときに録画の終わりを待つ秒数。`shutdownGraceHours` より長くする | `25200` |
 | `app.publicOrigin` | ブラウザから届くアドレス。OIDC でサインインするときに要る | 空 |
 | `app.knownNetworks` | `X-Forwarded-*` を信じる前段の網の一覧。Ingress のコントローラの Pod がいる網を書く | 空 |
@@ -336,7 +336,7 @@ driver:
         address: 0.0.0.0
         hostNames:
           - lender.example.com
-        keyFile: /etc/carina/lending.key
+        keyFile: /etc/puppis/lending.key
   hostDevices:
     - /dev/dvb/adapter0
   pcscd:
@@ -453,9 +453,9 @@ docker compose logs driver
 
 ## 版
 
-| Pyxis | Carina app | Carina driver | Vela | PostgreSQL | Caddy |
+| Pyxis | Carina | Puppis | Vela | PostgreSQL | Caddy |
 | --- | --- | --- | --- | --- | --- |
-| 未リリース | v1.0.0 | v1.0.0 | v1.0.0 | 18.6 | 2.11.7 |
+| 未リリース | v2.0.0 | v0.1.1 | v1.0.0 | 18.6 | 2.11.7 |
 
 イメージの版は `compose.yml` と `charts/pyxis/values.yaml` に数字で書いてあり、`latest` は使わない。\
 2 か所が同じ版であることは CI が確かめる。\
@@ -466,5 +466,5 @@ Pyxis の版は、その組で起動・録画・再生を確かめてから付�
 AGPL-3.0-only。著作権者は NewWorldOrg で、全文は `LICENSE` にある。
 
 Pyxis が持つのは設定だけで、ソフトウェアは各イメージの側にある。\
-イメージに同梱した他のソフトウェアとそのライセンスは、イメージの中の `/usr/share/doc/carina/` と `/usr/share/doc/vela/` で読める。\
+イメージに同梱した他のソフトウェアとそのライセンスは、イメージの中の `/usr/share/doc/puppis/`・`/usr/share/doc/carina/`・`/usr/share/doc/vela/` で読める。\
 PostgreSQL と Caddy は公式のイメージをそのまま使う。
