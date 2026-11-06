@@ -22,17 +22,18 @@ jobs:
       - uses: azure/setup-helm@v4
         with:
           version: ${{ env.HELM_VERSION }}
-      - name: The tag names the version Chart.yaml declares, and appVersion is the same number
+      - name: The tag is the version Chart.yaml declares, or a prerelease of it (v0.1.0-rc.1 for 0.1.0), and appVersion is the same number
         id: version
         run: |
-          version=$(sed -n 's/^version: *//p' charts/pyxis/Chart.yaml)
+          declared=$(sed -n 's/^version: *//p' charts/pyxis/Chart.yaml)
           app_version=$(sed -n 's/^appVersion: *//p' charts/pyxis/Chart.yaml)
-          if [ "${GITHUB_REF_NAME}" != "v${version}" ]; then
-            echo "the tag ${GITHUB_REF_NAME} is not v${version}, the version Chart.yaml declares" >&2
+          version=${GITHUB_REF_NAME#v}
+          if [ "${version%%-*}" != "${declared}" ]; then
+            echo "the tag ${GITHUB_REF_NAME} is not v${declared} or a prerelease of it, the version Chart.yaml declares" >&2
             exit 1
           fi
-          if [ "${app_version}" != "${version}" ]; then
-            echo "appVersion ${app_version} is not the chart version ${version}" >&2
+          if [ "${app_version}" != "${declared}" ]; then
+            echo "appVersion ${app_version} is not the chart version ${declared}" >&2
             exit 1
           fi
           case "${version}" in
@@ -68,10 +69,11 @@ jobs:
           for values in charts/pyxis/ci/*-values.yaml; do
             helm lint --strict charts/pyxis -f "${values}"
           done
-      - name: Package and push the chart to the registry
+      - name: Package the chart as the tag's version and push it to the registry
         run: |
           echo "${{ secrets.GITHUB_TOKEN }}" | helm registry login ghcr.io --username "${{ github.actor }}" --password-stdin
-          helm package charts/pyxis --destination "${RUNNER_TEMP}"
+          helm package charts/pyxis --destination "${RUNNER_TEMP}" \
+            --version "${{ needs.version.outputs.version }}" --app-version "${{ needs.version.outputs.version }}"
           helm push "${RUNNER_TEMP}/pyxis-${{ needs.version.outputs.version }}.tgz" "${CHART_REGISTRY}"
       - name: The pushed chart can be read back by version
         run: helm show chart "${CHART_REGISTRY}/pyxis" --version "${{ needs.version.outputs.version }}"
@@ -93,7 +95,7 @@ jobs:
             echo "the release ${GITHUB_REF_NAME} is already there and is left as it is."
             exit 0
           fi
-          scripts/release-notes.sh "${{ needs.version.outputs.previous }}" > "${RUNNER_TEMP}/notes.md"
+          PYXIS_VERSION="${{ needs.version.outputs.version }}" scripts/release-notes.sh "${{ needs.version.outputs.previous }}" > "${RUNNER_TEMP}/notes.md"
           flags=""
           if [ "${{ needs.version.outputs.prerelease }}" = yes ]; then
             flags="--prerelease"
