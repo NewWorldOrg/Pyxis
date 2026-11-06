@@ -459,6 +459,7 @@ docker compose logs driver
 
 イメージの版は `compose.yml` と `charts/pyxis/values.yaml` に数字で書いてあり、`latest` は使わない。\
 2 か所が同じ版であることは CI が確かめる。\
+PR のたびに compose は Docker で、チャートは kind で起動し、画面と API が答えることも CI が見る。\
 Pyxis の版は、その組で起動・録画・再生を確かめてから付ける。
 
 ## ライセンス

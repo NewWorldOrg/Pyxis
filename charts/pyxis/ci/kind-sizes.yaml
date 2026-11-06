@@ -1,0 +1,14 @@
+# kind での起動の試験で default-values.yaml に重ねる値。名前を *-values.yaml にしないのは、chart の job が単体で lint と描画をする組と区別するため。置き場を小さくし、そのほかは既定のまま
+persistence:
+  recordings:
+    size: 1Gi
+  encodes:
+    size: 1Gi
+  thumbnails:
+    size: 256Mi
+  captions:
+    size: 256Mi
+  keys:
+    size: 64Mi
+  db:
+    size: 1Gi

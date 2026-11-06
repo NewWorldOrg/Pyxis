@@ -89,6 +89,23 @@ jobs:
         if: always()
         run: docker compose down -v -t 60
 
+  kind-up:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v7
+      - uses: azure/setup-helm@v4
+        with:
+          version: v3.19.0
+      - uses: helm/kind-action@v1.15.2
+        with:
+          version: v0.31.0
+          cluster_name: pyxis-check
+      - name: On kind, the chart with a synthetic tuner, the bundled database and no GPU comes up, app and vela answer, and app subscribes to the driver
+        run: scripts/check-kind.sh
+        env:
+          PYXIS_KIND_KEEP: 1
+
   chart:
     runs-on: ubuntu-latest
     env:
