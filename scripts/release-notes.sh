@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # GitHub Release の本文を書く。この版が固定するイメージの表と、前の版から driver が替わるかどうか。
-# 引数は前の版のタグ (無ければ空)
+# 引数は前の版のタグ (無ければ空)。PYXIS_VERSION に出す版 (0.1.0-rc.1 など) を渡す。無ければ Chart.yaml の version
 set -euo pipefail
 
 cd "$(dirname "$0")/.."
@@ -48,4 +48,5 @@ else
     echo "driver のイメージが ${previous} の \`${driver_before}\` から替わる。録画中とライブの視聴中を避けて更新する。"
 fi
 echo
-echo "compose は \`git checkout ${GITHUB_REF_NAME:-$(git describe --tags --exact-match 2>/dev/null || echo HEAD)}\` して \`docker compose pull\` と \`docker compose up -d\`、Helm は \`helm upgrade carina oci://ghcr.io/newworldorg/charts/pyxis --version $(sed -n 's/^version: *//p' charts/pyxis/Chart.yaml) -n tv -f values.yaml\`。"
+version=${PYXIS_VERSION:-$(sed -n 's/^version: *//p' charts/pyxis/Chart.yaml)}
+echo "compose は \`git checkout v${version}\` して \`docker compose pull\` と \`docker compose up -d\`、Helm は \`helm upgrade carina oci://ghcr.io/newworldorg/charts/pyxis --version ${version} -n tv -f values.yaml\`。"
