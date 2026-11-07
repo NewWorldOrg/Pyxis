@@ -455,7 +455,8 @@ docker compose logs driver
 
 | Pyxis | Carina | Puppis | Vela | PostgreSQL | Caddy |
 | --- | --- | --- | --- | --- | --- |
-| 未リリース | v2.0.0 | v0.1.1 | v1.0.0 | 18.6 | 2.11.7 |
+| 0.2.0 | v2.0.0 | v0.1.1 | v1.1.0 | 18.6 | 2.11.7 |
+| 0.1.0 | v2.0.0 | v0.1.1 | v1.0.0 | 18.6 | 2.11.7 |
 
 イメージの版は `compose.yml` と `charts/pyxis/values.yaml` に数字で書いてあり、`latest` は使わない。\
 2 か所が同じ版であることは CI が確かめる。\

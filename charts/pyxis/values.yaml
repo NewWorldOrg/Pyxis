@@ -136,7 +136,7 @@ vela:
     # 画面のイメージ
     repository: ghcr.io/newworldorg/vela
     # 画面のイメージのタグ。compose.yml と同じ版にする
-    tag: v1.0.0
+    tag: v1.1.0
     # イメージを引く条件
     pullPolicy: IfNotPresent
   # 画面だけに当てる nodeSelector。空なら上の nodeSelector を使う
