@@ -19,7 +19,7 @@ spec:
       labels:
         {{- include "pyxis.selectorLabels" (dict "root" . "part" "driver") | nindent 8 }}
       annotations:
-        checksum/config: {{ include (print $.Template.BasePath "/driver-configmap.yaml") . | sha256sum }}
+        checksum/config: {{ merge (dict "socketGroupId" (int .Values.carina.gid)) .Values.driver.config | toJson | sha256sum }}
     spec:
       {{- with include "pyxis.imagePullSecrets" . }}{{ . | trim | nindent 6 }}{{- end }}
       {{- with include "pyxis.nodeSelector" (dict "root" . "own" $driver.nodeSelector) }}{{ . | trim | nindent 6 }}{{- end }}
