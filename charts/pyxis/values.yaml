@@ -104,7 +104,7 @@ postgres:
     # PostgreSQL のイメージ
     repository: postgres
     # PostgreSQL のイメージのタグ。compose.yml と同じ版にする
-    tag: 18.6-alpine
+    tag: 18.6-trixie
     # イメージを引く条件
     pullPolicy: IfNotPresent
   auth:
