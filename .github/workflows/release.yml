@@ -40,7 +40,7 @@ jobs:
             *-*) prerelease=yes ;;
             *) prerelease=no ;;
           esac
-          previous=$(git tag --list 'v*' --sort=-v:refname | grep -vx "${GITHUB_REF_NAME}" | head -n 1 || true)
+          previous=$(git -c versionsort.suffix=- tag --list 'v*' --sort=-v:refname | grep -vx "${GITHUB_REF_NAME}" | head -n 1 || true)
           echo "version=${version}" >> "${GITHUB_OUTPUT}"
           echo "prerelease=${prerelease}" >> "${GITHUB_OUTPUT}"
           echo "previous=${previous}" >> "${GITHUB_OUTPUT}"
