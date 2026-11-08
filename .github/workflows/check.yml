@@ -34,7 +34,7 @@ jobs:
       - name: compose.yml on its own
         run: docker compose config -q
       - name: compose.yml with every device file laid over it
-        run: docker compose -f compose.yml -f examples/tuner-dvb.yml -f examples/tuner-usb.yml -f examples/gpu-intel.yml config -q
+        run: docker compose -f compose.yml -f examples/tuner-dvb.yml -f examples/tuner-usb.yml -f examples/gpu-intel.yml -f examples/gpu-nvidia.yml config -q
 
   compose-up:
     runs-on: ubuntu-latest

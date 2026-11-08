@@ -1,0 +1,14 @@
+# NVIDIA の GPU (NVENC) を app に渡す。ホストに NVIDIA Container Toolkit と 530.41.03 以上のドライバが要る。
+# ドライバのライブラリはランタイムがホストから差し込む。video が無いと libnvidia-encode が入らない。
+# 渡しただけでは変換はソフトウェアのままなので、.env で CARINA_ENCODINGS_PREFER と CARINA_TRANSCODING_PREFER を Nvenc にする
+services:
+  app:
+    environment:
+      NVIDIA_DRIVER_CAPABILITIES: video,compute,utility
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu, video]
