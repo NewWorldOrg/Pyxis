@@ -23,6 +23,10 @@ spec:
     spec:
       {{- with include "pyxis.imagePullSecrets" . }}{{ . | trim | nindent 6 }}{{- end }}
       {{- with include "pyxis.nodeSelector" (dict "root" . "own" $app.nodeSelector) }}{{ . | trim | nindent 6 }}{{- end }}
+      {{- if eq $app.gpu.mode "nvidia" }}
+      # NVIDIA Container Toolkit の runtime が、ドライバのライブラリと装置をコンテナに差し込む
+      runtimeClassName: {{ $app.gpu.runtimeClassName }}
+      {{- end }}
       securityContext:
         fsGroup: {{ $gid }}
         {{- if eq $app.gpu.mode "none" }}
@@ -104,8 +108,14 @@ spec:
               value: {{ $app.encodingsPrefer }}
             - name: Transcoding__Prefer
               value: {{ $app.transcodingPrefer }}
+            {{- if or (eq $app.gpu.mode "devicePlugin") (eq $app.gpu.mode "hostPath") }}
             - name: Machine__RenderNode
               value: {{ $app.gpu.renderNode }}
+            {{- end }}
+            {{- if eq $app.gpu.mode "nvidia" }}
+            - name: NVIDIA_DRIVER_CAPABILITIES
+              value: video,compute,utility
+            {{- end }}
             {{- with $app.extraEnv }}
             {{- toYaml . | nindent 12 }}
             {{- end }}
@@ -147,6 +157,9 @@ spec:
           {{- if eq $app.gpu.mode "devicePlugin" }}
           {{- $_ := set $resources "requests" (merge (dict $app.gpu.resource "1") ($resources.requests | default dict)) }}
           {{- $_ := set $resources "limits" (merge (dict $app.gpu.resource "1") ($resources.limits | default dict)) }}
+          {{- end }}
+          {{- if eq $app.gpu.mode "nvidia" }}
+          {{- $_ := set $resources "limits" (merge (dict $app.gpu.nvidiaResource (toString $app.gpu.nvidiaCount)) ($resources.limits | default dict)) }}
           {{- end }}
           {{- with $resources }}
           resources:

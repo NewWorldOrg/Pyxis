@@ -1,0 +1,9 @@
+# NVIDIA の GPU を RuntimeClass と device plugin で渡し、エンコードを Nvenc にする
+app:
+  encodingsPrefer: Nvenc
+  transcodingPrefer: Nvenc
+  gpu:
+    mode: nvidia
+postgres:
+  auth:
+    password: check

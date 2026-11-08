@@ -105,10 +105,13 @@
         "gpu": {
           "type": "object",
           "additionalProperties": false,
-          "required": ["mode", "resource", "renderNode", "hostPath"],
+          "required": ["mode", "resource", "runtimeClassName", "nvidiaResource", "nvidiaCount", "renderNode", "hostPath"],
           "properties": {
-            "mode": { "type": "string", "enum": ["none", "devicePlugin", "hostPath"] },
+            "mode": { "type": "string", "enum": ["none", "devicePlugin", "hostPath", "nvidia"] },
             "resource": { "type": "string", "minLength": 1 },
+            "runtimeClassName": { "type": "string", "minLength": 1 },
+            "nvidiaResource": { "type": "string", "minLength": 1 },
+            "nvidiaCount": { "type": "integer", "minimum": 1 },
             "renderNode": { "$ref": "#/$defs/absolutePath" },
             "hostPath": { "$ref": "#/$defs/absolutePath" }
           }
@@ -232,7 +235,7 @@
   "$defs": {
     "absolutePath": { "type": "string", "pattern": "^/" },
     "stringMap": { "type": "object", "additionalProperties": { "type": "string" } },
-    "prefer": { "type": "string", "enum": ["Software", "Vaapi"] },
+    "prefer": { "type": "string", "enum": ["Software", "Vaapi", "Nvenc"] },
     "resources": {
       "type": "object",
       "additionalProperties": false,

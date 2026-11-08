@@ -74,16 +74,23 @@ app:
   publicOrigin: ""
   # X-Forwarded-* を信じる前段の網の一覧 (10.42.0.0/16 など)。Ingress のコントローラの Pod がいる網を書く
   knownNetworks: []
-  # 録画をあとからエンコードするときの変換器。Software か Vaapi
+  # 録画をあとからエンコードするときの変換器。Software、Vaapi、Nvenc のどれか
   encodingsPrefer: Software
-  # ライブと録画再生をその場で変換するときの変換器。Software か Vaapi
+  # ライブと録画再生をその場で変換するときの変換器。Software、Vaapi、Nvenc のどれか
   transcodingPrefer: Software
   gpu:
-    # GPU の渡し方。none、devicePlugin (Intel の device plugin)、hostPath (/dev/dri を渡し、app を特権にする)
+    # GPU の渡し方。none、devicePlugin (Intel の device plugin)、hostPath (/dev/dri を渡し、app を特権にする)、
+    # nvidia (NVIDIA Container Toolkit と device plugin。Nvenc で使う。ホストのドライバは 530.41.03 以上)
     mode: none
     # devicePlugin のときに要求する資源の名前
     resource: gpu.intel.com/i915
-    # VAAPI で使う GPU の描画ノード
+    # nvidia のときに app に付ける RuntimeClass の名前
+    runtimeClassName: nvidia
+    # nvidia のときに要求する資源の名前
+    nvidiaResource: nvidia.com/gpu
+    # nvidia のときに要求する GPU の数
+    nvidiaCount: 1
+    # VAAPI (devicePlugin と hostPath) で使う GPU の描画ノード。nvidia では使わない
     renderNode: /dev/dri/renderD128
     # hostPath のときにホストから渡す装置のディレクトリ
     hostPath: /dev/dri
@@ -94,7 +101,7 @@ app:
   extraEnv: []
   # app だけに当てる nodeSelector。空なら上の nodeSelector を使う
   nodeSelector: {}
-  # app の resources。devicePlugin のときは GPU の資源をチャートが足す
+  # app の resources。devicePlugin と nvidia のときは GPU の資源をチャートが足す
   resources: {}
 
 postgres:

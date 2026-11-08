@@ -14,7 +14,7 @@ B-CAS カードを 1 枚しか持っていなくても、別の機械のチュ�
 - 録画用のディスク。地上波の録画は 1 時間あたり約 7 GB
 - チューナー。Linux DVB で `/dev/dvb/adapterN` として見える PCIe・USB のカード、または USB チューナーの CECH-ZD1
 - B-CAS カードとカードリーダー。ホストで pcscd を動かしておきます
-- Intel の GPU(任意)。H.265 と AV1 のエンコード、ライブと再生の変換に使います
+- Intel の GPU か NVIDIA の GPU(任意)。NVIDIA は NVIDIA Container Toolkit とドライバ 530.41.03 以上が要ります。H.265 と AV1 のエンコード、ライブと再生の変換に使います
 
 チューナーとカードが無い機械でも、合成チューナーで画面を開くところまでは試せます。
 
@@ -36,7 +36,7 @@ cp driver/examples/driver-dvb.json driver/driver.json
 docker compose -f compose.yml -f examples/tuner-dvb.yml up -d
 ```
 
-`examples/` のファイルはホストのデバイスをコンテナに渡すもので、USB チューナーなら `tuner-usb.yml`、Intel の GPU なら `gpu-intel.yml` を重ねます。\
+`examples/` のファイルはホストのデバイスをコンテナに渡すもので、USB チューナーなら `tuner-usb.yml`、Intel の GPU なら `gpu-intel.yml`、NVIDIA の GPU なら `gpu-nvidia.yml` を重ねます。\
 `.env` に `COMPOSE_FILE=compose.yml:examples/tuner-dvb.yml` と書いておくと、以後は `docker compose up -d` だけで起動します。
 
 起動したら、ブラウザで `http://<サーバのアドレス>/` を開きます。\
@@ -62,8 +62,8 @@ docker compose logs app | grep 'Sign in as'
 | `CARINA_PUBLIC_ORIGIN` | ブラウザから見たサーバのアドレス。OIDC でサインインするときに必要です | 空 |
 | `PYXIS_SITE_ADDRESS` | Caddy が待ち受けるアドレス。ドメインを書くと証明書を取得して https で開きます | `:80` |
 | `PYXIS_HTTP_PORT` / `PYXIS_HTTPS_PORT` | ホスト側で開くポート | `80` / `443` |
-| `CARINA_ENCODINGS_PREFER` | エンコードに使うエンコーダー。`Software` か `Vaapi` | `Software` |
-| `CARINA_TRANSCODING_PREFER` | ライブと再生の変換に使うエンコーダー。`Software` か `Vaapi` | `Software` |
+| `CARINA_ENCODINGS_PREFER` | エンコードに使うエンコーダー。`Software`・`Vaapi`・`Nvenc` のどれか | `Software` |
+| `CARINA_TRANSCODING_PREFER` | ライブと再生の変換に使うエンコーダー。`Software`・`Vaapi`・`Nvenc` のどれか | `Software` |
 | `CARINA_RENDER_NODE` | VAAPI で使う GPU のデバイス | `/dev/dri/renderD128` |
 
 番組表の収集間隔や品質の閾値などの細かい設定は Carina の README にあります。\
