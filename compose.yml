@@ -22,7 +22,7 @@ services:
       retries: 10
       start_period: 1m
 
-  # app は uid 10001 で動くので、app が書く置き場の所有者をその番号にそろえてから app を上げる (中のファイルには触らない)
+  # app は uid 10001 で動くので、app が書き込むディレクトリとボリュームの所有者を 10001 にしてから app を起動する (中のファイルの所有者は変えない)
   prepare:
     image: ghcr.io/newworldorg/carina:v2.1.0
     logging: *logging
@@ -54,7 +54,7 @@ services:
       ConnectionStrings__Carina: Host=db;Port=5432;Database=carina;Username=carina;Password=${POSTGRES_PASSWORD:?}
       CARINA_DATA_PROTECTION_KEYS: /var/lib/carina/keys
       CARINA_PUBLIC_ORIGIN: ${CARINA_PUBLIC_ORIGIN:-}
-      # proxy はこの compose の網にいる。networks の subnet と同じ値にする
+      # proxy はこの compose のネットワークにいる。networks の subnet と同じ値にする
       CARINA_KNOWN_NETWORKS: 172.30.0.0/24
       Integrity__OutputRoots: primary=/srv/recordings
       Thumbnails__WrittenTo: /srv/thumbnails
@@ -94,10 +94,10 @@ services:
   driver:
     image: ghcr.io/newworldorg/puppis:v0.3.0
     logging: *logging
-    # 要求による停止は 0、それ以外は 70 で終わるので on-failure は使わない
+    # 停止を要求されたときは終了コード 0、それ以外は 70 で終了するので on-failure は使わない
     restart: unless-stopped
     privileged: true
-    # 録画中に止められると録画の終わり (上限 shutdownGraceHours、既定 6 時間) まで待つ。それより長くする
+    # 録画中に停止を要求されると録画の終了 (上限は shutdownGraceHours、既定 6 時間) まで待つ。それより長くする
     stop_grace_period: 7h
     environment:
       PUPPIS_DRIVER_CONFIG: /etc/puppis/driver.json

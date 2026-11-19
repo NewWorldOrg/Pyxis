@@ -1,6 +1,6 @@
 # USB の地上デジタルチューナー (CECH-ZD1) を driver に渡す。
-# 挿し直すとノードの番号が変わる。devices で渡すとコンテナを作ったときのノードしか見えないので、
-# /dev/bus/usb をマウントし、USB の装置 (メジャー番号 189) の読み書きを許す
+# 挿し直すとデバイスノードの番号が変わる。devices で渡すとコンテナを作成したときのデバイスノードしか見えないので、
+# /dev/bus/usb をマウントし、USB デバイス (メジャー番号 189) へのアクセスを device cgroup で許可する
 services:
   driver:
     device_cgroup_rules:

@@ -1,12 +1,12 @@
 {{/*
-部品の名前。リリース名に部品の名前をつなぐ (carina-driver、carina-app、carina-db、carina-vela)
+コンポーネントのリソース名。リリース名にコンポーネントの名前をつなぐ (carina-driver、carina-app、carina-db、carina-vela)
 */}}
 {{- define "pyxis.partName" -}}
 {{- printf "%s-%s" .root.Release.Name .part | trunc 63 | trimSuffix "-" -}}
 {{- end -}}
 
 {{/*
-資源の metadata に付けるラベル。チャートの版はここにだけ入れ、Pod のテンプレートには入れない
+リソースの metadata に付けるラベル。チャートのバージョンはここにだけ入れ、Pod のテンプレートには入れない
 */}}
 {{- define "pyxis.labels" -}}
 helm.sh/chart: {{ printf "%s-%s" .root.Chart.Name .root.Chart.Version | replace "+" "_" }}
@@ -25,7 +25,7 @@ app.kubernetes.io/component: {{ .part }}
 {{- end -}}
 
 {{/*
-部品の nodeSelector。部品のものがあればそれを、無ければ共通のものを使う
+コンポーネントの nodeSelector。コンポーネントに指定があればそれを、無ければ共通のものを使う
 */}}
 {{- define "pyxis.nodeSelector" -}}
 {{- $selector := .own | default .root.Values.nodeSelector -}}
@@ -35,9 +35,6 @@ nodeSelector:
 {{- end }}
 {{- end -}}
 
-{{/*
-Pod の imagePullSecrets
-*/}}
 {{- define "pyxis.imagePullSecrets" -}}
 {{- with .Values.imagePullSecrets }}
 imagePullSecrets:
@@ -48,7 +45,7 @@ imagePullSecrets:
 {{- end -}}
 
 {{/*
-置き場の volume の中身。type が pvc、existingClaim、hostPath、emptyDir のどれかで形が変わる
+persistence の各ボリュームの volume ソース。type が pvc、existingClaim、hostPath、emptyDir のどれかで内容が変わる
 */}}
 {{- define "pyxis.volumeSource" -}}
 {{- $spec := index .root.Values.persistence .name -}}
@@ -77,7 +74,7 @@ emptyDir: {}
 {{- end -}}
 
 {{/*
-app と migrate に渡す接続文字列の環境変数。同梱のときは Service 名とパスワードから組み、外のときは Secret から読む
+app と migrate に渡す接続文字列の環境変数。同梱のデータベースなら Service 名とパスワードから組み立て、外部のデータベースなら Secret から読む
 */}}
 {{- define "pyxis.connectionStringEnv" -}}
 {{- if .Values.postgres.enabled }}

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# GitHub Release の本文を書く。この版が固定するイメージの表と、前の版から driver が替わるかどうか。
-# 引数は前の版のタグ (無ければ空)。PYXIS_VERSION に出す版 (0.1.0-rc.1 など) を渡す。無ければ Chart.yaml の version
+# GitHub Release の本文を標準出力に書く。このバージョンで固定するイメージの表、前のバージョンから driver のイメージが変わるかどうか、更新のコマンド。
+# 引数は前のバージョンのタグ (無ければ空)。PYXIS_VERSION にリリースするバージョン (0.1.0-rc.1 など) を渡す。無ければ Chart.yaml の version を使う
 set -euo pipefail
 
 cd "$(dirname "$0")/.."
