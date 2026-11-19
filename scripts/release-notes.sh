@@ -30,7 +30,7 @@ row() {
     printf '| %s | `%s` |\n' "$label" "$image"
 }
 
-echo '| 部品 | イメージ |'
+echo '| コンポーネント | イメージ |'
 echo '| --- | --- |'
 row 'Carina' carina-app
 row 'Puppis (driver)' puppis-driver
@@ -41,11 +41,11 @@ echo
 driver_now=$(image_of HEAD puppis-driver)
 driver_before=$(image_of "$previous" puppis-driver)
 if [ -z "$previous" ]; then
-    echo '最初の版。'
+    echo '最初のバージョン。'
 elif [ "$driver_now" = "$driver_before" ]; then
     echo "driver のイメージは ${previous} と同じ。更新しても driver は作り直されず、録画は続く。"
 else
-    echo "driver のイメージが ${previous} の \`${driver_before}\` から替わる。録画中とライブの視聴中を避けて更新する。"
+    echo "driver のイメージが ${previous} の \`${driver_before}\` から変わる。録画中とライブの視聴中を避けて更新する。"
 fi
 echo
 version=${PYXIS_VERSION:-$(sed -n 's/^version: *//p' charts/pyxis/Chart.yaml)}

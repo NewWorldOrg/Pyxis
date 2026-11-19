@@ -39,7 +39,7 @@ sed -i 's/^version: .*/version: 99.99.99/; s/^appVersion: .*/appVersion: 99.99.9
 rebumped=$(helm template carina "$bumped/pyxis" -f charts/pyxis/ci/default-values.yaml)
 rm -rf "$bumped"
 if [ "$(checksum_of "$rendered")" != "$(checksum_of "$rebumped")" ]; then
-    echo 'チャートの版を変えただけで driver の checksum が変わる' >&2
+    echo 'チャートのバージョンを変えただけで driver の checksum が変わる' >&2
     status=1
 fi
 reconfigured=$(helm template carina charts/pyxis -f charts/pyxis/ci/default-values.yaml --set driver.config.shutdownGraceHours=7)
@@ -58,5 +58,5 @@ if [ "$services" != 'carina-app carina-db carina-vela ' ]; then
     status=1
 fi
 
-[ "$status" = 0 ] && echo '描き方の決まりは守られている'
+[ "$status" = 0 ] && echo 'レンダリング結果は条件をすべて満たしている'
 exit "$status"

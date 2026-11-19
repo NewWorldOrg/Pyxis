@@ -54,7 +54,7 @@ while IFS= read -r image; do
 done < <(compose_images)
 
 if [ "$status" = 0 ]; then
-    echo 'compose.yml、values.yaml、Chart.yaml のイメージの版は同じ'
+    echo 'compose.yml、values.yaml、Chart.yaml のイメージのバージョンは同じ'
     values_images
 fi
 exit "$status"
