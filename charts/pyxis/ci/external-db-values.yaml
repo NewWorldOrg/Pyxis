@@ -1,4 +1,4 @@
-# 外のデータベース。同梱の DB を作らず、接続文字列を Secret から読む。GPU は hostPath、サムネイルと字幕は emptyDir
+# 外部のデータベースを使う構成。同梱のデータベースを作らず、接続文字列を Secret から読む。GPU は hostPath、サムネイルと字幕は emptyDir
 postgres:
   enabled: false
 externalDatabase:

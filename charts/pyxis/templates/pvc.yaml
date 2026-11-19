@@ -17,7 +17,7 @@ metadata:
   labels:
     {{- include "pyxis.labels" (dict "root" $ "part" $name) | nindent 4 }}
   annotations:
-    # リリースを消しても残す
+    # リリースを削除しても PVC を残す
     helm.sh/resource-policy: keep
 spec:
   accessModes:

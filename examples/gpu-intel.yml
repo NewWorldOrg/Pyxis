@@ -1,6 +1,6 @@
 # Intel の GPU (VAAPI) を app に渡す。
-# 描画ノードの所有グループは、イメージの entrypoint が装置から読んで app に足すので group_add は要らない。
-# 渡しただけでは変換はソフトウェアのままなので、.env で CARINA_ENCODINGS_PREFER と CARINA_TRANSCODING_PREFER を Vaapi にする
+# render ノード (/dev/dri/renderD128 など) の所有グループは、イメージの entrypoint がデバイスから読み取って app に追加するので group_add は要らない。
+# 渡しただけではエンコーダーは Software のままなので、.env で CARINA_ENCODINGS_PREFER と CARINA_TRANSCODING_PREFER を Vaapi にする
 services:
   app:
     devices:

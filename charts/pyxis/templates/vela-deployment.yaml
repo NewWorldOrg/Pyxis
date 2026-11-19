@@ -25,7 +25,7 @@ spec:
           env:
             - name: CARINA_API_BASE_URL
               value: {{ printf "http://%s:8080" (include "pyxis.partName" (dict "root" . "part" "app")) | quote }}
-            # next の standalone は HOSTNAME で待ち受ける。k8s は Pod 名を入れるので全部で待ち受けさせる
+            # Next.js の standalone サーバは HOSTNAME のアドレスで待ち受ける。Kubernetes は HOSTNAME に Pod 名を入れるので、0.0.0.0 を指定してすべてのインターフェースで待ち受ける
             - name: HOSTNAME
               value: 0.0.0.0
           ports:

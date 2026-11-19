@@ -1,4 +1,4 @@
-# 既定の形。合成のチューナー、同梱のデータベース、GPU なし、標準の Ingress
+# 既定の構成。テスト用の擬似チューナー (fake)、同梱のデータベース、GPU なし、標準の Ingress
 postgres:
   auth:
     password: check

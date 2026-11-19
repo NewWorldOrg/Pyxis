@@ -7,6 +7,6 @@ rules:
   truthy:
     check-keys: false
 
-# Helm のテンプレートは描く前の YAML ではない
+# Helm のテンプレートはレンダリングするまで YAML として解釈できない
 ignore:
   - charts/pyxis/templates/

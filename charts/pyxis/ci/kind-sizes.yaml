@@ -1,4 +1,4 @@
-# kind での起動の試験で default-values.yaml に重ねる値。名前を *-values.yaml にしないのは、chart の job が単体で lint と描画をする組と区別するため。置き場を小さくし、そのほかは既定のまま
+# kind での起動テストで default-values.yaml に重ねる値。ファイル名を *-values.yaml にしないのは、chart の job が単体で lint とレンダリングをする values ファイルと区別するため。ボリュームのサイズを小さくし、そのほかは既定のまま
 persistence:
   recordings:
     size: 1Gi

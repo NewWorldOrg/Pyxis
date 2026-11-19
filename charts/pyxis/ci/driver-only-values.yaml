@@ -1,4 +1,4 @@
-# driver だけを別の機械に立てる形。ホストのネットワークでカードを貸し、app・画面・DB・前段は作らない
+# driver だけを別の機械で動かす構成。ホストのネットワークでカードを貸し、app・Vela・データベース・Ingress は作らない
 driver:
   hostNetwork: true
   config:

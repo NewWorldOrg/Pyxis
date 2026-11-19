@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# compose.yml、charts/pyxis/values.yaml、charts/pyxis/Chart.yaml の 3 か所に書いたイメージの版が同じかを確かめる。
-# values.yaml と Chart.yaml のイメージはどれも compose.yml に無ければならず、compose.yml の carina・vela・postgres もその中に無ければならない
+# compose.yml、charts/pyxis/values.yaml、charts/pyxis/Chart.yaml の 3 か所に書いたイメージのバージョンが同じかを確かめる。
+# values.yaml と Chart.yaml のイメージはどれも compose.yml に無ければならず、compose.yml の carina・puppis・vela・postgres のイメージも values.yaml と Chart.yaml の両方に無ければならない
 set -euo pipefail
 
 cd "$(dirname "$0")/.."
@@ -54,7 +54,7 @@ while IFS= read -r image; do
 done < <(compose_images)
 
 if [ "$status" = 0 ]; then
-    echo 'compose.yml、values.yaml、Chart.yaml のイメージの版は同じ'
+    echo 'compose.yml、values.yaml、Chart.yaml のイメージのバージョンは同じ'
     values_images
 fi
 exit "$status"

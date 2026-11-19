@@ -7,7 +7,7 @@ metadata:
   labels:
     {{- include "pyxis.labels" (dict "root" . "part" "driver") | nindent 4 }}
 spec:
-  # チューナーを占有するので 1 つだけ動かし、入れ替えも古いものが止まってから
+  # チューナーを占有するのでレプリカは 1 つだけにし、更新のときも古い Pod が停止してから新しい Pod を起動する
   replicas: 1
   strategy:
     type: Recreate
@@ -26,7 +26,7 @@ spec:
       {{- if $driver.hostNetwork }}
       hostNetwork: true
       {{- end }}
-      # 録画中に止められると録画の終わりまで待つ。shutdownGraceHours より長くする
+      # 録画中に停止を要求されると録画の終了まで待つ。shutdownGraceHours より長くする
       terminationGracePeriodSeconds: {{ $driver.terminationGracePeriodSeconds }}
       containers:
         - name: driver

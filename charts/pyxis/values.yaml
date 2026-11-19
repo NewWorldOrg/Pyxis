@@ -1,12 +1,12 @@
-# 全部の Pod に当てる nodeSelector。driver と app はソケットのディレクトリを hostPath で共有するので、ノードが複数なら同じノードを指す
+# すべての Pod に適用する nodeSelector。driver と app はソケットのディレクトリを hostPath で共有するので、ノードが複数なら同じノードを指定する
 nodeSelector: {}
-# イメージを引くときに使う Secret の名前の一覧。GHCR の公開イメージなら要らない
+# イメージの pull に使う Secret の名前の一覧。GHCR の公開イメージなら要らない
 imagePullSecrets: []
 
 carina:
-  # app を動かす uid。鍵の置き場やエンコード済みファイルの持ち主になる
+  # app を動かす uid。鍵のディレクトリやエンコード済みファイルの所有者になる
   uid: 10001
-  # app を動かす gid。driver のソケットの所有グループ (driver.json の socketGroupId) にも同じ値を入れる
+  # app を動かす gid。driver のソケットの所有グループ (driver.json の socketGroupId) にもチャートが同じ値を設定する
   gid: 10001
 
 driver:
@@ -15,20 +15,20 @@ driver:
   image:
     # driver のイメージ
     repository: ghcr.io/newworldorg/puppis
-    # driver のイメージのタグ。compose.yml と同じ版にする
+    # driver のイメージのタグ。compose.yml と同じバージョンにする
     tag: v0.3.0
-    # イメージを引く条件
+    # イメージの pull ポリシー
     pullPolicy: IfNotPresent
-  # driver.json の中身をそのまま書く。socketGroupId はチャートが carina.gid で入れ、socketPath は既定 (/run/carina/driver.sock) のままにする
+  # driver.json の内容をそのまま書く。socketGroupId はチャートが carina.gid の値を設定し、socketPath は既定 (/run/carina/driver.sock) のままにする
   config:
     # 録画の保存先。app の Integrity__OutputRoots と同じ名前とパスにする
     outputRoots:
       - name: primary
         path: /srv/recordings
-    # 録画中に止められたとき、録画の終わりを待つ上限の時間
+    # 録画中に停止を要求されたとき、録画の終了を待つ時間の上限
     shutdownGraceHours: 6
     tuner:
-      # dvb、usb か fake。置いてあるのは合成のチューナー
+      # dvb、usb、fake のどれか。既定はテスト用の擬似チューナー (fake)
       backend: fake
     # チューナーの一覧。dvb と usb なら devicePath も書く
     devices:
@@ -38,7 +38,7 @@ driver:
       - id: fake-satellite
         kind: satellite
         enabled: true
-  # ホストの装置のディレクトリの一覧。同じパスで hostPath で渡す (/dev/dvb/adapter0 や /dev/bus/usb)
+  # ホストのデバイスのディレクトリの一覧。同じパスに hostPath でマウントする (/dev/dvb/adapter0 や /dev/bus/usb)
   hostDevices: []
   pcscd:
     # ホストの pcscd の /run/pcscd をディレクトリごと読み取り専用で渡すか。tuner.backend が dvb なら要る
@@ -46,16 +46,16 @@ driver:
   socket:
     # driver と app が共有するソケットのディレクトリのホスト側のパス。無ければ作る
     hostPath: /run/pyxis
-  # ホストのネットワークで動かすか。カードを貸す driver は true にして、口を Pod の網の外に開く
+  # ホストのネットワークで動かすか。カードを貸す driver は true にして、ポートを Pod のネットワークの外に公開する
   hostNetwork: false
   lendingKey:
     # カードの貸し借りの鍵を持つ Secret の名前。空なら渡さない
     existingSecret: ""
-    # その Secret の中の鍵のキー。/etc/puppis/lending.key に所有者だけが読める形で置く
+    # その Secret の中で鍵を持つキー。/etc/puppis/lending.key に所有者だけが読めるパーミッションでマウントする
     key: key
-  # 止めるときに録画の終わりを待つ秒数。config.shutdownGraceHours より長くする
+  # 停止するときに録画の終了を待つ秒数。config.shutdownGraceHours より長くする
   terminationGracePeriodSeconds: 25200
-  # driver だけに当てる nodeSelector。空なら上の nodeSelector を使う
+  # driver だけに適用する nodeSelector。空なら最上位の nodeSelector を使う
   nodeSelector: {}
   # driver の resources
   resources: {}
@@ -66,42 +66,42 @@ app:
   image:
     # app と migrate のイメージ
     repository: ghcr.io/newworldorg/carina
-    # app のイメージのタグ。compose.yml と同じ版にする
+    # app のイメージのタグ。compose.yml と同じバージョンにする
     tag: v2.1.0
-    # イメージを引く条件
+    # イメージの pull ポリシー
     pullPolicy: IfNotPresent
-  # ブラウザからこのサーバに届くアドレス (https://tv.example.com)。OIDC の redirect URI の元になる
+  # ブラウザから見たこのサーバのアドレス (https://tv.example.com)。OIDC の redirect URI の元になる
   publicOrigin: ""
-  # X-Forwarded-* を信じる前段の網の一覧 (10.42.0.0/16 など)。Ingress のコントローラの Pod がいる網を書く
+  # X-Forwarded-* を信頼するリバースプロキシのネットワーク (CIDR) の一覧 (10.42.0.0/16 など)。Ingress コントローラの Pod がいるネットワークを書く
   knownNetworks: []
-  # 録画をあとからエンコードするときの変換器。Software、Vaapi、Nvenc のどれか
+  # 録画をあとからエンコードするときのエンコーダー。Software、Vaapi、Nvenc のどれか
   encodingsPrefer: Software
-  # ライブと録画再生をその場で変換するときの変換器。Software、Vaapi、Nvenc のどれか
+  # ライブと録画再生をリアルタイムでトランスコードするときのエンコーダー。Software、Vaapi、Nvenc のどれか
   transcodingPrefer: Software
   gpu:
-    # GPU の渡し方。none、devicePlugin (Intel の device plugin)、hostPath (/dev/dri を渡し、app を特権にする)、
+    # GPU の渡し方。none、devicePlugin (Intel の device plugin)、hostPath (/dev/dri をマウントし、app を特権コンテナにする)、
     # nvidia (NVIDIA Container Toolkit と device plugin。Nvenc で使う。ホストのドライバは 530.41.03 以上)
     mode: none
-    # devicePlugin のときに要求する資源の名前
+    # devicePlugin のときに要求するリソースの名前
     resource: gpu.intel.com/i915
     # nvidia のときに app に付ける RuntimeClass の名前
     runtimeClassName: nvidia
-    # nvidia のときに要求する資源の名前
+    # nvidia のときに要求するリソースの名前
     nvidiaResource: nvidia.com/gpu
     # nvidia のときに要求する GPU の数
     nvidiaCount: 1
-    # VAAPI (devicePlugin と hostPath) で使う GPU の描画ノード。nvidia では使わない
+    # VAAPI (devicePlugin と hostPath) で使う GPU の render ノード。nvidia では使わない
     renderNode: /dev/dri/renderD128
-    # hostPath のときにホストから渡す装置のディレクトリ
+    # hostPath のときにホストからマウントするデバイスのディレクトリ
     hostPath: /dev/dri
   dataProtection:
-    # OIDC の client secret を封じる鍵の種を持つ Secret の名前。鍵の置き場が空のときだけ写す。空なら app が初回に作る
+    # ASP.NET Core Data Protection の鍵ファイルを持つ Secret の名前。keys のボリュームに同じ名前のファイルが無いときだけコピーする。空なら app が初回に鍵を生成する
     seedSecret: ""
   # app に足す環境変数の一覧 (name と value)。Encodings__MostCores などの細かい設定に使う
   extraEnv: []
-  # app だけに当てる nodeSelector。空なら上の nodeSelector を使う
+  # app だけに適用する nodeSelector。空なら最上位の nodeSelector を使う
   nodeSelector: {}
-  # app の resources。devicePlugin と nvidia のときは GPU の資源をチャートが足す
+  # app の resources。devicePlugin と nvidia のときは GPU のリソースをチャートが追加する
   resources: {}
 
 postgres:
@@ -110,9 +110,9 @@ postgres:
   image:
     # PostgreSQL のイメージ
     repository: postgres
-    # PostgreSQL のイメージのタグ。compose.yml と同じ版にする
+    # PostgreSQL のイメージのタグ。compose.yml と同じバージョンにする
     tag: 18.6-trixie
-    # イメージを引く条件
+    # イメージの pull ポリシー
     pullPolicy: IfNotPresent
   auth:
     # データベースの名前
@@ -123,9 +123,9 @@ postgres:
     existingSecret: ""
     # その Secret の中のパスワードのキー
     passwordKey: password
-    # existingSecret が空のときに Secret に入れるパスワード。`;` は使えない。どちらも空だと描画が止まる
+    # existingSecret が空のときに Secret に入れるパスワード。`;` は使えない。どちらも空だとレンダリングが失敗する
     password: ""
-  # データベースだけに当てる nodeSelector。空なら上の nodeSelector を使う
+  # データベースだけに適用する nodeSelector。空なら最上位の nodeSelector を使う
   nodeSelector: {}
   # データベースの resources
   resources: {}
@@ -137,29 +137,29 @@ externalDatabase:
   connectionKey: connection
 
 vela:
-  # 画面の Deployment と Service を作るか
+  # Vela の Deployment と Service を作るか
   enabled: true
   image:
-    # 画面のイメージ
+    # Vela のイメージ
     repository: ghcr.io/newworldorg/vela
-    # 画面のイメージのタグ。compose.yml と同じ版にする
+    # Vela のイメージのタグ。compose.yml と同じバージョンにする
     tag: v1.4.0
-    # イメージを引く条件
+    # イメージの pull ポリシー
     pullPolicy: IfNotPresent
-  # 画面だけに当てる nodeSelector。空なら上の nodeSelector を使う
+  # Vela だけに適用する nodeSelector。空なら最上位の nodeSelector を使う
   nodeSelector: {}
-  # 画面の resources
+  # Vela の resources
   resources: {}
 
 route:
-  # 前段の種類。ingress (標準の Ingress)、ingressRoute (Traefik の IngressRoute)、none (自前の前段)
+  # 外部からのリクエストを app と Vela に振り分けるリソースの種類。ingress (標準の Ingress)、ingressRoute (Traefik の IngressRoute)、none (作らず、リバースプロキシを自分で用意する)
   kind: ingress
-  # ブラウザが開くホスト名 (tv.example.com)。空ならホスト名を見ずに全部を受ける
+  # ブラウザが開くホスト名 (tv.example.com)。空ならホスト名を問わず、すべてのリクエストを受ける
   host: ""
   ingress:
     # Ingress の ingressClassName。空なら書かない
     className: ""
-    # Ingress の annotations。SSE と WebSocket を溜めない設定はコントローラごとに違う
+    # Ingress の annotations。SSE と WebSocket をバッファリングしない設定は Ingress コントローラごとに違う
     annotations: {}
     # Ingress の tls の一覧 (hosts と secretName)
     tls: []
@@ -170,12 +170,12 @@ route:
     # IngressRoute の tls。{} なら Traefik の既定の証明書、null なら http
     tls: {}
 
-# 置き場ごとに type を pvc、existingClaim、hostPath から選ぶ。thumbnails と captions は emptyDir も選べる
+# ボリュームごとに type を pvc、existingClaim、hostPath から選ぶ。thumbnails と captions は emptyDir も選べる
 persistence:
   recordings:
-    # 録画。driver が書き、app は読むだけ
+    # 録画。driver が書き込み、app は読み取り専用でマウントする
     type: pvc
-    # pvc のときの大きさ
+    # pvc のときのサイズ
     size: 500Gi
     # pvc のときの storageClassName。空なら既定、"-" なら無し
     storageClass: ""
@@ -187,12 +187,12 @@ persistence:
     hostPath:
       # hostPath のときのホスト側のパス
       path: ""
-      # hostPath のときの type。Directory なら無いときに起動しない
+      # hostPath のときの type。Directory ならディレクトリが無いと Pod が起動しない
       type: Directory
   encodes:
-    # エンコード済みのファイル。app が書く
+    # エンコード済みのファイル。app が書き込む
     type: pvc
-    # pvc のときの大きさ
+    # pvc のときのサイズ
     size: 200Gi
     # pvc のときの storageClassName。空なら既定、"-" なら無し
     storageClass: ""
@@ -207,9 +207,9 @@ persistence:
       # hostPath のときの type
       type: Directory
   thumbnails:
-    # サムネイル。app が書く。emptyDir なら Pod と一緒に消え、作り直される
+    # サムネイル。app が書き込む。emptyDir なら Pod と一緒に消え、再生成される
     type: pvc
-    # pvc のときの大きさ
+    # pvc のときのサイズ
     size: 5Gi
     # pvc のときの storageClassName。空なら既定、"-" なら無し
     storageClass: ""
@@ -224,9 +224,9 @@ persistence:
       # hostPath のときの type
       type: Directory
   captions:
-    # 録画から取り出した字幕とデータ放送の記録。app が書く。emptyDir なら Pod と一緒に消え、取り出し直される
+    # 録画から抽出した字幕とデータ放送の記録。app が書き込む。emptyDir なら Pod と一緒に消え、抽出し直される
     type: pvc
-    # pvc のときの大きさ
+    # pvc のときのサイズ
     size: 5Gi
     # pvc のときの storageClassName。空なら既定、"-" なら無し
     storageClass: ""
@@ -241,9 +241,9 @@ persistence:
       # hostPath のときの type
       type: Directory
   keys:
-    # OIDC の client secret を封じる鍵。データベースとは別に残す
+    # OIDC の client secret や通知の送り先を暗号化する鍵 (ASP.NET Core Data Protection) と、Web Push の署名に使う鍵。データベースとは別にバックアップする
     type: pvc
-    # pvc のときの大きさ
+    # pvc のときのサイズ
     size: 100Mi
     # pvc のときの storageClassName。空なら既定、"-" なら無し
     storageClass: ""
@@ -260,7 +260,7 @@ persistence:
   db:
     # 同梱のデータベースのデータ
     type: pvc
-    # pvc のときの大きさ
+    # pvc のときのサイズ
     size: 20Gi
     # pvc のときの storageClassName。空なら既定、"-" なら無し
     storageClass: ""

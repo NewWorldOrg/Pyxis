@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
-# 今の kubectl の context (kind) に、既定の値と ci/kind-sizes.yaml でチャートを入れ、
-# app の /api/health と vela の /login が 200 を返し、app が driver の口 (/events) につないだことを確かめる。
-# 終わったらリリースと名前空間を消す
+# 現在の kubectl の context (kind) に、ci/default-values.yaml と ci/kind-sizes.yaml でチャートをインストールし、
+# app の /api/health と vela の /login が 200 を返し、app が driver のエンドポイント (/events) に接続したことを確かめる。
+# 終わったらリリースと名前空間を削除する (PYXIS_KIND_KEEP=1 のときは残す)
 set -euo pipefail
 
 cd "$(dirname "$0")/.."
@@ -37,7 +37,7 @@ describe_failure() {
 }
 
 kubectl create namespace "$namespace" --dry-run=client -o yaml | kubectl apply -f - >/dev/null
-# driver は privileged で動く
+# driver は特権コンテナなので、名前空間の Pod Security を privileged にする
 kubectl label namespace "$namespace" pod-security.kubernetes.io/enforce=privileged --overwrite >/dev/null
 
 if ! helm upgrade --install "$release" charts/pyxis -n "$namespace" \
@@ -70,7 +70,7 @@ fi
 curl -s "http://127.0.0.1:${app_port}/api/health"
 echo
 
-# app は driver の口につなぐと、まず /events を購読する。driver の要求のログにそれが残る
+# app は driver のソケットに接続すると、まず /events を購読する。driver のリクエストログにそれが残る
 subscribed=''
 for _ in $(seq 1 60); do
     if kubectl -n "$namespace" logs "deploy/${release}-driver" --tail=-1 | grep -q 'GET http://driver/events'; then

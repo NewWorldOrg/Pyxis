@@ -18,7 +18,7 @@ keywords:
   - carina
   - vela
 annotations:
-  # この版が固定するイメージの組。compose.yml と values.yaml の image と同じ値にする
+  # このバージョンで固定するイメージの組み合わせ。compose.yml と values.yaml の image と同じ値にする
   images/carina-app: ghcr.io/newworldorg/carina:v2.1.0
   images/puppis-driver: ghcr.io/newworldorg/puppis:v0.3.0
   images/vela: ghcr.io/newworldorg/vela:v1.4.0

@@ -1,4 +1,4 @@
-# Traefik の IngressRoute と Intel の device plugin。DVB のチューナーと pcscd を渡し、置き場は hostPath
+# Traefik の IngressRoute と Intel の device plugin。DVB のチューナーと pcscd を渡し、ボリュームはすべて hostPath
 nodeSelector:
   kubernetes.io/hostname: node-1
 driver:

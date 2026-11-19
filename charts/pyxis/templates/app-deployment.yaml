@@ -9,7 +9,7 @@ metadata:
   labels:
     {{- include "pyxis.labels" (dict "root" . "part" "app") | nindent 4 }}
 spec:
-  # 予約の確認やエンコードの列をプロセスの中に持つので 1 つだけ。古い app が止まってから migrate を当てる
+  # 予約の確認やエンコードのキューをプロセスの中に持つのでレプリカは 1 つだけ。古い app が停止してからマイグレーションを実行する
   replicas: 1
   strategy:
     type: Recreate
@@ -24,7 +24,7 @@ spec:
       {{- with include "pyxis.imagePullSecrets" . }}{{ . | trim | nindent 6 }}{{- end }}
       {{- with include "pyxis.nodeSelector" (dict "root" . "own" $app.nodeSelector) }}{{ . | trim | nindent 6 }}{{- end }}
       {{- if eq $app.gpu.mode "nvidia" }}
-      # NVIDIA Container Toolkit の runtime が、ドライバのライブラリと装置をコンテナに差し込む
+      # NVIDIA Container Toolkit のランタイムが、ドライバのライブラリとデバイスをコンテナにマウントする
       runtimeClassName: {{ $app.gpu.runtimeClassName }}
       {{- end }}
       securityContext:
@@ -35,7 +35,7 @@ spec:
         {{- end }}
       initContainers:
         {{- if $app.dataProtection.seedSecret }}
-        # client secret を封じる鍵の種を、置き場に無いときだけ写す。あとから増えた鍵には触らない
+        # seedSecret の Data Protection の鍵ファイルを、keys のボリュームに同じ名前のファイルが無いときだけコピーする。あとから増えた鍵には触らない
         - name: seed-keys
           image: {{ $image | quote }}
           imagePullPolicy: {{ $app.image.pullPolicy }}
@@ -71,14 +71,14 @@ spec:
           image: {{ $image | quote }}
           imagePullPolicy: {{ $app.image.pullPolicy }}
           {{- if eq $app.gpu.mode "devicePlugin" }}
-          # device plugin が作る装置は root:root 0660 で app が開けない。グループを app のものに替えてから entrypoint に渡す
+          # device plugin が作るデバイスノードは root:root 0660 で app が開けない。グループを app の gid に変えてから entrypoint を実行する
           command:
             - bash
             - -c
             - chgrp {{ $gid }} /dev/dri/* && exec /usr/local/bin/carina app
           {{- end }}
           {{- if eq $app.gpu.mode "hostPath" }}
-          # hostPath で渡した装置は device cgroup が開かせないので、特権にする
+          # hostPath でマウントしたデバイスは device cgroup がアクセスを許可しないので、特権コンテナにする
           securityContext:
             privileged: true
           {{- end }}

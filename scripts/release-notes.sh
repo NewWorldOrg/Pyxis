@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# GitHub Release の本文を書く。この版が固定するイメージの表と、前の版から driver が替わるかどうか。
-# 引数は前の版のタグ (無ければ空)。PYXIS_VERSION に出す版 (0.1.0-rc.1 など) を渡す。無ければ Chart.yaml の version
+# GitHub Release の本文を標準出力に書く。このバージョンで固定するイメージの表、前のバージョンから driver のイメージが変わるかどうか、更新のコマンド。
+# 引数は前のバージョンのタグ (無ければ空)。PYXIS_VERSION にリリースするバージョン (0.1.0-rc.1 など) を渡す。無ければ Chart.yaml の version を使う
 set -euo pipefail
 
 cd "$(dirname "$0")/.."
@@ -30,7 +30,7 @@ row() {
     printf '| %s | `%s` |\n' "$label" "$image"
 }
 
-echo '| 部品 | イメージ |'
+echo '| コンポーネント | イメージ |'
 echo '| --- | --- |'
 row 'Carina' carina-app
 row 'Puppis (driver)' puppis-driver
@@ -41,11 +41,11 @@ echo
 driver_now=$(image_of HEAD puppis-driver)
 driver_before=$(image_of "$previous" puppis-driver)
 if [ -z "$previous" ]; then
-    echo '最初の版。'
+    echo '最初のバージョン。'
 elif [ "$driver_now" = "$driver_before" ]; then
     echo "driver のイメージは ${previous} と同じ。更新しても driver は作り直されず、録画は続く。"
 else
-    echo "driver のイメージが ${previous} の \`${driver_before}\` から替わる。録画中とライブの視聴中を避けて更新する。"
+    echo "driver のイメージが ${previous} の \`${driver_before}\` から変わる。録画中とライブの視聴中を避けて更新する。"
 fi
 echo
 version=${PYXIS_VERSION:-$(sed -n 's/^version: *//p' charts/pyxis/Chart.yaml)}
