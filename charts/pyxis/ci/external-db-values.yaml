@@ -1,4 +1,4 @@
-# 外部のデータベースを使う構成。同梱のデータベースを作らず、接続文字列を Secret から読む。GPU は hostPath、サムネイルと字幕は emptyDir
+# 外部のデータベースを使う構成。同梱のデータベースを作らず、接続文字列を Secret から読む。GPU は hostPath、サムネイルと字幕と受信の記録は emptyDir
 postgres:
   enabled: false
 externalDatabase:
@@ -29,4 +29,6 @@ persistence:
   thumbnails:
     type: emptyDir
   captions:
+    type: emptyDir
+  state:
     type: emptyDir

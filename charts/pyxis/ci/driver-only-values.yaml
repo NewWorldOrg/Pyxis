@@ -1,4 +1,4 @@
-# driver だけを別の機械で動かす構成。ホストのネットワークでカードを貸し、app・Vela・データベース・Ingress は作らない
+# driver だけを別の機械で動かす構成。ホストのネットワークでカードを貸し、app・Vela・データベース・Ingress は作らない。受信の記録のボリュームは既定の PVC のまま
 driver:
   hostNetwork: true
   config:

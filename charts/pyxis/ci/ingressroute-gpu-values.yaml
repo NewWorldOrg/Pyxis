@@ -77,3 +77,7 @@ persistence:
     type: hostPath
     hostPath:
       path: /srv/pyxis/postgres
+  state:
+    type: hostPath
+    hostPath:
+      path: /srv/pyxis/driver-state

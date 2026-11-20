@@ -35,6 +35,8 @@ spec:
           env:
             - name: PUPPIS_DRIVER_CONFIG
               value: /etc/puppis/driver.json
+            - name: PUPPIS_DRIVER_STATE
+              value: /var/lib/puppis
           securityContext:
             privileged: true
           volumeMounts:
@@ -46,6 +48,8 @@ spec:
               mountPath: /run/carina
             - name: recordings
               mountPath: /srv/recordings
+            - name: state
+              mountPath: /var/lib/puppis
             {{- if $driver.pcscd.enabled }}
             - name: pcscd
               mountPath: /run/pcscd
@@ -75,6 +79,8 @@ spec:
             type: DirectoryOrCreate
         - name: recordings
           {{- include "pyxis.volumeSource" (dict "root" . "name" "recordings") | trim | nindent 10 }}
+        - name: state
+          {{- include "pyxis.volumeSource" (dict "root" . "name" "state") | trim | nindent 10 }}
         {{- if $driver.pcscd.enabled }}
         - name: pcscd
           hostPath:

@@ -170,7 +170,7 @@ route:
     # IngressRoute の tls。{} なら Traefik の既定の証明書、null なら http
     tls: {}
 
-# ボリュームごとに type を pvc、existingClaim、hostPath から選ぶ。thumbnails と captions は emptyDir も選べる
+# ボリュームごとに type を pvc、existingClaim、hostPath から選ぶ。thumbnails、captions、state は emptyDir も選べる
 persistence:
   recordings:
     # 録画。driver が書き込み、app は読み取り専用でマウントする
@@ -262,6 +262,23 @@ persistence:
     type: pvc
     # pvc のときのサイズ
     size: 20Gi
+    # pvc のときの storageClassName。空なら既定、"-" なら無し
+    storageClass: ""
+    # pvc のときの accessModes
+    accessModes:
+      - ReadWriteOnce
+    # existingClaim のときの PVC の名前
+    existingClaim: ""
+    hostPath:
+      # hostPath のときのホスト側のパス
+      path: ""
+      # hostPath のときの type
+      type: Directory
+  state:
+    # チューナーと局の組み合わせごとの受信の記録。driver が書き込む。emptyDir なら Pod と一緒に消え、driver が測り直す
+    type: pvc
+    # pvc のときのサイズ
+    size: 100Mi
     # pvc のときの storageClassName。空なら既定、"-" なら無し
     storageClass: ""
     # pvc のときの accessModes
