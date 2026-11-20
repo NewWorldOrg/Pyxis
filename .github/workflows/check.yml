@@ -141,5 +141,5 @@ jobs:
                   -schema-location default \
                   -schema-location 'https://raw.githubusercontent.com/datreeio/CRDs-catalog/main/{{.Group}}/{{.ResourceKind}}_{{.ResourceAPIVersion}}.json'
           done
-      - name: No chart version in the Pod templates, the checksum on the driver only, Service names from the release name
+      - name: No chart version in the Pod templates, the checksum on the driver only, Service names from the release name, the state volume, the claims
         run: scripts/check-rendering.sh

@@ -5,6 +5,7 @@
   "captions" .Values.app.enabled
   "keys" .Values.app.enabled
   "db" .Values.postgres.enabled
+  "state" .Values.driver.enabled
 }}
 {{- range $name, $needed := $needs }}
 {{- $spec := index $.Values.persistence $name }}

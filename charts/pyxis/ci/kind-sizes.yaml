@@ -12,3 +12,5 @@ persistence:
     size: 64Mi
   db:
     size: 1Gi
+  state:
+    size: 64Mi

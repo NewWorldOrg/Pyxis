@@ -92,7 +92,7 @@ services:
         condition: service_started
 
   driver:
-    image: ghcr.io/newworldorg/puppis:v0.3.0
+    image: ghcr.io/newworldorg/puppis:v0.4.0
     logging: *logging
     # 停止を要求されたときは終了コード 0、それ以外は 70 で終了するので on-failure は使わない
     restart: unless-stopped
@@ -101,8 +101,11 @@ services:
     stop_grace_period: 7h
     environment:
       PUPPIS_DRIVER_CONFIG: /etc/puppis/driver.json
+      # driver がチューナーと局の組み合わせごとの受信の記録を保存するディレクトリ。指定しないと記録は再起動で消える
+      PUPPIS_DRIVER_STATE: /var/lib/puppis
     volumes:
       - ./driver/driver.json:/etc/puppis/driver.json:ro
+      - driver-state:/var/lib/puppis
       - driver-run:/run/carina
       - ${CARINA_RECORDINGS_DIR:?}:/srv/recordings
     healthcheck:
@@ -160,6 +163,7 @@ networks:
 
 volumes:
   driver-run:
+  driver-state:
   thumbnails:
   captions:
   caddy-data:

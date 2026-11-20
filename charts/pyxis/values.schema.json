@@ -221,14 +221,15 @@
     "persistence": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["recordings", "encodes", "thumbnails", "captions", "keys", "db"],
+      "required": ["recordings", "encodes", "thumbnails", "captions", "keys", "db", "state"],
       "properties": {
         "recordings": { "$ref": "#/$defs/storage" },
         "encodes": { "$ref": "#/$defs/storage" },
         "thumbnails": { "$ref": "#/$defs/storageOrEmptyDir" },
         "captions": { "$ref": "#/$defs/storageOrEmptyDir" },
         "keys": { "$ref": "#/$defs/storage" },
-        "db": { "$ref": "#/$defs/storage" }
+        "db": { "$ref": "#/$defs/storage" },
+        "state": { "$ref": "#/$defs/storageOrEmptyDir" }
       }
     }
   },
