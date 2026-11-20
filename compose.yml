@@ -92,7 +92,7 @@ services:
         condition: service_started
 
   driver:
-    image: ghcr.io/newworldorg/puppis:v0.3.0
+    image: ghcr.io/newworldorg/puppis:v0.4.0
     logging: *logging
     # 停止を要求されたときは終了コード 0、それ以外は 70 で終了するので on-failure は使わない
     restart: unless-stopped

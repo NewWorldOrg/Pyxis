@@ -16,7 +16,7 @@ driver:
     # driver のイメージ
     repository: ghcr.io/newworldorg/puppis
     # driver のイメージのタグ。compose.yml と同じバージョンにする
-    tag: v0.3.0
+    tag: v0.4.0
     # イメージの pull ポリシー
     pullPolicy: IfNotPresent
   # driver.json の内容をそのまま書く。socketGroupId はチャートが carina.gid の値を設定し、socketPath は既定 (/run/carina/driver.sock) のままにする
