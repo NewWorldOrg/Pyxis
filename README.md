@@ -12,8 +12,8 @@ B-CAS カードを 1 枚しか持っていなくても、別の機械のチュ�
 
 - Docker 25 以上と Docker Compose v2。CPU は amd64
 - 録画用のディスク。地上波の録画は 1 時間あたり約 7 GB
-- チューナー。Linux DVB で `/dev/dvb/adapterN` として見える PCIe・USB のカード、または USB チューナーの CECH-ZD1
-- B-CAS カードとカードリーダー。ホストで pcscd を動かしておきます
+- チューナー。Linux DVB で `/dev/dvb/adapterN` として見える PCIe・USB のカード、または USB チューナーの CECH-ZD1 か PIX-DT295
+- B-CAS カードとカードリーダー。ホストで pcscd を動かしておきます。PIX-DT295 は本体のスロットに挿したカードを使います
 - Intel の GPU か NVIDIA の GPU(任意)。NVIDIA は NVIDIA Container Toolkit とドライバ 530.41.03 以上が要ります。H.265 と AV1 のエンコード、ライブと再生の変換に使います
 
 チューナーとカードが無い機械でも、擬似チューナーで画面を開くところまでは試せます。
@@ -29,7 +29,9 @@ mkdir -p /srv/tv/{db,recordings,encodes,keys}
 
 `.env` にデータベースのパスワードと、データを置く 4 つのディレクトリを書きます。\
 次に `driver/driver.json` をチューナーに合わせます。\
-DVB と USB のサンプルが `driver/examples/` にあります。
+DVB と USB のサンプルが `driver/examples/` にあります。\
+USB のサンプルは CECH-ZD1 と PIX-DT295 のどちらにも使えます。\
+PIX-DT295 は 1 台で地上波か衛星のどちらか一方を受信するので、`kind` に `terrestrial` か `satellite` を書きます。
 
 ```bash
 cp driver/examples/driver-dvb.json driver/driver.json
@@ -69,6 +71,9 @@ docker compose logs app | grep 'Sign in as'
 番組表の収集間隔や品質の閾値などの細かい設定は Carina の README にあります。\
 変えるときは `compose.override.yml` を置き、`app` の `environment` に書きます。
 
+driver は、チューナーと局の組み合わせごとの受信の記録をボリューム `driver-state` に保存します。\
+同じ局を受信できるチューナーが複数空いているときは、記録の良いチューナーを使います。
+
 ## 更新
 
 ```bash
@@ -97,7 +102,8 @@ helm install carina oci://ghcr.io/newworldorg/charts/pyxis --version 0.7.0 -n tv
 ```
 
 値の一覧と説明は `charts/pyxis/values.yaml` にあります。\
-driver は特権コンテナなので、名前空間の Pod Security は `privileged` にしてください。
+driver は特権コンテナなので、名前空間の Pod Security は `privileged` にしてください。\
+driver の受信の記録は `persistence.state` のボリュームに保存し、既定は 100Mi の PVC です。
 
 ## バージョン
 
