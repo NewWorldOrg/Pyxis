@@ -78,7 +78,7 @@ driver は、チューナーと局の組み合わせごとの受信の記録を�
 
 ```bash
 git fetch --tags
-git checkout v0.7.0
+git checkout v0.8.0
 docker compose pull
 docker compose stop app
 docker compose up -d
@@ -98,7 +98,7 @@ tar -C "$(grep ^CARINA_KEYS_DIR= .env | cut -d= -f2)" -cf keys-$(date +%Y%m%d).t
 ## Helm
 
 ```bash
-helm install carina oci://ghcr.io/newworldorg/charts/pyxis --version 0.7.0 -n tv --create-namespace -f values.yaml
+helm install carina oci://ghcr.io/newworldorg/charts/pyxis --version 0.8.0 -n tv --create-namespace -f values.yaml
 ```
 
 値の一覧と説明は `charts/pyxis/values.yaml` にあります。\
@@ -109,6 +109,7 @@ driver の受信の記録は `persistence.state` のボリュームに保存し�
 
 | Pyxis | Carina | Puppis | Vela | PostgreSQL | Caddy |
 | --- | --- | --- | --- | --- | --- |
+| 0.8.0 | v2.1.1 | v0.5.0 | v1.4.1 | 18.6(Debian) | 2.11.7 |
 | 0.7.0 | v2.1.0 | v0.4.0 | v1.4.0 | 18.6(Debian) | 2.11.7 |
 | 0.6.0 | v2.1.0 | v0.3.0 | v1.4.0 | 18.6(Debian) | 2.11.7 |
 | 0.5.0 | v2.0.0 | v0.2.0 | v1.3.0 | 18.6(Debian) | 2.11.7 |

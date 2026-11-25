@@ -16,7 +16,7 @@ driver:
     # driver のイメージ
     repository: ghcr.io/newworldorg/puppis
     # driver のイメージのタグ。compose.yml と同じバージョンにする
-    tag: v0.4.0
+    tag: v0.5.0
     # イメージの pull ポリシー
     pullPolicy: IfNotPresent
   # driver.json の内容をそのまま書く。socketGroupId はチャートが carina.gid の値を設定し、socketPath は既定 (/run/carina/driver.sock) のままにする
@@ -67,7 +67,7 @@ app:
     # app と migrate のイメージ
     repository: ghcr.io/newworldorg/carina
     # app のイメージのタグ。compose.yml と同じバージョンにする
-    tag: v2.1.0
+    tag: v2.1.1
     # イメージの pull ポリシー
     pullPolicy: IfNotPresent
   # ブラウザから見たこのサーバのアドレス (https://tv.example.com)。OIDC の redirect URI の元になる
@@ -143,7 +143,7 @@ vela:
     # Vela のイメージ
     repository: ghcr.io/newworldorg/vela
     # Vela のイメージのタグ。compose.yml と同じバージョンにする
-    tag: v1.4.0
+    tag: v1.4.1
     # イメージの pull ポリシー
     pullPolicy: IfNotPresent
   # Vela だけに適用する nodeSelector。空なら最上位の nodeSelector を使う

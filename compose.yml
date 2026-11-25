@@ -24,7 +24,7 @@ services:
 
   # app は uid 10001 で動くので、app が書き込むディレクトリとボリュームの所有者を 10001 にしてから app を起動する (中のファイルの所有者は変えない)
   prepare:
-    image: ghcr.io/newworldorg/carina:v2.1.0
+    image: ghcr.io/newworldorg/carina:v2.1.1
     logging: *logging
     restart: 'no'
     entrypoint: ['chown', '10001:10001', '/var/lib/carina/keys', '/srv/encodes', '/srv/thumbnails', '/srv/captions']
@@ -35,7 +35,7 @@ services:
       - captions:/srv/captions
 
   migrate:
-    image: ghcr.io/newworldorg/carina:v2.1.0
+    image: ghcr.io/newworldorg/carina:v2.1.1
     logging: *logging
     restart: 'no'
     environment:
@@ -46,7 +46,7 @@ services:
         condition: service_healthy
 
   app:
-    image: ghcr.io/newworldorg/carina:v2.1.0
+    image: ghcr.io/newworldorg/carina:v2.1.1
     logging: *logging
     restart: unless-stopped
     environment:
@@ -92,7 +92,7 @@ services:
         condition: service_started
 
   driver:
-    image: ghcr.io/newworldorg/puppis:v0.4.0
+    image: ghcr.io/newworldorg/puppis:v0.5.0
     logging: *logging
     # 停止を要求されたときは終了コード 0、それ以外は 70 で終了するので on-failure は使わない
     restart: unless-stopped
@@ -117,7 +117,7 @@ services:
       start_interval: 10s
 
   vela:
-    image: ghcr.io/newworldorg/vela:v1.4.0
+    image: ghcr.io/newworldorg/vela:v1.4.1
     logging: *logging
     restart: unless-stopped
     environment:
